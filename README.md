@@ -4,11 +4,24 @@
 
 ## 遊び方
 
-`index.html` をブラウザで開きます（同じフォルダの `art` `music` `media` と、`*_glb.js` などのファイルも一緒に置いてください）。最初の画面の右上の「English」で英語版に切りかわります。アドレスの最後に `#en` を付けて開いても英語になります。
+`index.html` をブラウザで開きます（同じフォルダの `boot.js` `page.js` `game.js`、`art` `music` `media`、`*_glb.js` などのファイルも一緒に置いてください）。最初の画面の右上の「English」で英語版に切りかわります。アドレスの最後に `#en` を付けて開いても英語になります。
+
+## 学校（i-FILTER）で使うとき
+
+github.io が「カテゴリー外」で止められるため、GAS（script.google.com）を入口にします。
+
+- `gas/Code.gs` と `gas/index.html` をGASのプロジェクトに貼り、ウェブアプリとしてデプロイします。
+- ゲームの中身（`boot.js` `page.js` `game.js` と、絵・音楽・動画・モデル）は、jsDelivr 経由でこのリポジトリから読みこみます。このリポジトリを更新すると、1分ほどでGASの側にも新しい版が届くので、GASは書きかえなくてかまいません。
+- 英語版は、GASのアドレスの最後に `?lang=en` を付けて開きます（最初の画面の「English」ボタンでも切りかわります）。
+- `VERSION` は、GASが新しい版を調べるときの控えです。
 
 ## フォルダ
 
-- `index.html` … ゲーム本体（1つにまとめたもの）
+- `index.html` … 入口（小さなファイル）
+- `boot.js` … 起動用。`page.js` と `game.js` を順に読みこむ
+- `page.js` … 画面の形と見た目
+- `game.js` … ゲーム本体（プログラムとデータを1つにまとめたもの）
+- `gas/` … GASに貼る2つのファイル
 - `art/` … 政策とできごとの絵（政策の id、決断の番号 ev0〜ev7 の名前）
 - `music/` `media/` … 音楽と、最初の画面の動画
 - `ally_glb.js` `soldier_tw_glb.js` `tanks_glb.js` など … 兵士・戦車などの立体モデル
