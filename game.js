@@ -1187,10 +1187,12 @@ function make(mode,opt){const S={mode,t:0,units:[],barr:[],fx:[],cap:0,over:null
   for(const [x,y] of sc.mg||[])S.add(mode==='atk'?'f':'g',x,y,{mg:true,men:VD.mg.men,q:1,post:[x,y],setup:VD.prep&&mode==='def'?VD.prep.until+VD.mg.setup:0});   // 準備砲撃のある戦いでは、砲撃が止まるまで撃てない
   if(mode==='atk'){for(const [x0,y0,k] of sc.fr){const [x,y]=k==='fort'?[x0,y0]:snap(x0,y0),u=S.add('f',x,y,{post:[x,y],garr:k==='fort'});if(u.garr)u.men*=VD.garrison;}for(const [t,L] of sc.reinf)for(const q of L)S.spawn.push({t:t+(Math.random()*2-1)*VD.jitter,x:q[0],y:q[1],to:[q[2],q[3]]});}
   else for(const [t,L] of sc.waves)for(const q of L)S.spawn.push({t:t>0?t+(Math.random()*2-1)*VD.jitter:0,x:q[0],y:q[1],atk:true,gi:q[2]});
+  if(sc.tanks&&VD.tank)for(const [t,x,y,gi] of sc.tanks)S.spawn.push({t,x,y,atk:true,gi,tank:true});
+  if(sc.guns&&VD.fgun&&mode==='def')for(const [x,y] of sc.guns)S.add('g',x,y,{mg:true,gun:true,men:VD.mg.men,q:1,post:[x,y]});
   // 守る所がいくつもある戦い：goals＝[{x,y,name,cap＝おさえられている時間,lost＝敵に取られているか}]
   if(sc.goals){S.goals=sc.goals.map(g=>({x:g[0],y:g[1],name:g[2],cap:0,lost:false}));S.lostN=0;}
   return S;}
-function hurt(S,v,men,mor){const m=Math.min(v.men,men);v.men-=m;if(!v.mg)S.loss[v.side]+=m;if(v.mg){v.hit=0;return;}v.mor=Math.max(0,v.mor-mor*(v.mask?VD.gas.maskMor:1)*(terrain(v.x,v.y)==='fort'?VD.steady:1));v.hit=0;}
+function hurt(S,v,men,mor){const m=Math.min(v.men,men);v.men-=m;if(!v.mg&&!v.tank)S.loss[v.side]+=m;if(v.mg||v.tank){v.hit=0;return;}v.mor=Math.max(0,v.mor-mor*(v.mask?VD.gas.maskMor:1)*(terrain(v.x,v.y)==='fort'?VD.steady:1));v.hit=0;}
 function end(S,win,why){S.over={win,why,t:S.t,lossG:S.loss.g,lossF:S.loss.f,goals:S.goals?S.goals.map(g=>({name:g.name,lost:g.lost})):null,caught:S.caught||0};}
 // 攻めてくる部隊 u が、いま向かう所。守る所がいくつもある戦いでは、ねらう村が取られたあとは、まだ取られていない近くの村へ向かう
 function fgoal(S,u){if(!S.goals)return S.goal;let g=S.goals[u.gi];if(!g||g.lost){let bd=1e9;g=null;S.goals.forEach((q,i)=>{if(q.lost)return;const d=hyp(q.x-u.x,q.y-u.y);if(d<bd){bd=d;g=q;u.gi=i;}});if(!g)return [u.x,u.y];}return [g.x,g.y];}
@@ -1221,7 +1223,10 @@ const gasR=c=>VD.gas.r*Math.min(1,.4+.6*c.age/VD.gas.grow),gasK=c=>Math.max(0,Ma
 function fireArt(S,x,y){if(S.shots<1||S.artWait>0||S.over)return false;S.shots--;S.artWait=VD.art.wait;S.barr.push({x,y,t:VD.art.sec,warn:0,fxT:0,side:'g',isNew:true});return true;}
 // 時間を dt 秒進める
 function tick(S,dt){if(S.over)return;S.t+=dt;let U=S.units;
-  for(const sp of S.spawn)if(!sp.done&&S.t>=sp.t){sp.done=true;S.add('f',sp.x,sp.y,sp.atk?{atk:true,gi:sp.gi}:{post:sp.to,tx:sp.to[0],ty:sp.to[1]});}
+  for(const sp of S.spawn)if(!sp.done&&S.t>=sp.t){sp.done=true;S.add('f',sp.x,sp.y,sp.tank?{atk:true,gi:sp.gi,tank:true,men:VD.tank.hp,q:1}:sp.atk?{atk:true,gi:sp.gi}:{post:sp.to,tx:sp.to[0],ty:sp.to[1]});}
+  // 戦車：故障と、近くのドイツ軍をおびえさせること
+  if(VD.tank)for(const u of U){if(!u.tank)continue;if(!u.broken&&Math.random()<VD.tank.fail*dt){u.broken=true;u.tx=u.x;u.ty=u.y;u.atk=false;S.fx.push({x:u.x,y:u.y,t:0,side:'f',small:true});}
+    for(const v of U)if(v.side==='g'&&!v.mg&&!v.dug&&v.state!=='rout'&&hyp(v.x-u.x,v.y-u.y)<VD.tank.fear)v.mor=Math.max(0,v.mor-VD.tank.fearMor*(u.broken?.4:1)*dt);}
   // 準備砲撃：止まる時刻まで、塹壕の線に砲弾が落ち続ける。地下壕の中の部隊と、機関銃の火点は、損害を受けない
   if(VD.prep&&S.mode==='def'){const P=VD.prep,ln=P.line||0;
     if(S.t<P.until){S.prepT=(S.prepT||0)-dt;if(S.prepT<=0){S.prepT=P.every;const p=trenchPt(ln,Math.random()*trenchLen(ln));S.barr.push({x:p[0]+(Math.random()*2-1)*12,y:p[1]+(Math.random()*2-1)*12,t:P.sec,warn:0,fxT:0,side:'f',isNew:Math.random()<.25,prep:true});}}
@@ -1249,10 +1254,10 @@ function tick(S,dt){if(S.over)return;S.t+=dt;let U=S.units;
       if(d>want+2){u.tx=v.x+(u.x-v.x)/d*want;u.ty=v.y+(u.y-v.y)/d*want;}else{u.tx=u.x;u.ty=u.y;}}}}
   // 動く
   // 退く部隊は、自分の軍の後ろへ下がる。しばらく撃たれなければ、そこで止まって立て直す
-  for(const u of U){if(u.mg){u.moving=false;if(u.setup>0)u.setup-=dt;continue;}if(u.dug){u.moving=false;u.tx=u.x;u.ty=u.y;continue;}if(u.melee&&u.state!=='rout'){u.moving=false;continue;}   // 白兵戦の間は、その場から動けない
-    let tx=u.tx,ty=u.ty,sp=VD.speed*((u.side==='f'&&VD[S.mode].eSpeed)||1);if(u.state==='rout'){tx=u.x;ty=u.side==='g'?Math.min(u.y,VD.refill.y-24*UZ):(u.hit>3?u.y:VD.H-10);sp*=1.3;u.foe=0;}   // ドイツ軍は、後方の線の内がわまで退く
+  for(const u of U){if(u.mg||(u.tank&&u.broken)){u.moving=false;if(u.setup>0)u.setup-=dt;continue;}if(u.dug){u.moving=false;u.tx=u.x;u.ty=u.y;continue;}if(u.melee&&u.state!=='rout'){u.moving=false;continue;}   // 白兵戦の間は、その場から動けない
+    let tx=u.tx,ty=u.ty,sp=VD.speed*((u.side==='f'&&VD[S.mode].eSpeed)||1)*(u.tank?VD.tank.speed:1);if(u.state==='rout'){tx=u.x;ty=u.side==='g'?Math.min(u.y,VD.refill.y-24*UZ):(u.hit>3?u.y:VD.H-10);sp*=1.3;u.foe=0;}   // ドイツ軍は、後方の線の内がわまで退く
     const d=hyp(tx-u.x,ty-u.y);u.moving=d>1.5;if(!u.moving)continue;let k=1;if(inForest(u.x,u.y))k*=VD.slow.forest;if(riverD(u.x,u.y)<9)k*=VD.slow.river;
-    u.inWire=false;if(VD.wires&&u.side==='f'&&u.state!=='rout')for(const w of VD.wires){if(segD(u.x,u.y,w.p[0],w.p[1])<VD.wire.w){k*=w.cut?VD.wire.cutSlow:VD.wire.slow;u.inWire=!w.cut;break;}}   // 鉄条網：切れていない所では、敵の足が止まる
+    u.inWire=false;if(VD.wires&&u.side==='f'&&!u.tank&&u.state!=='rout')for(const w of VD.wires){if(segD(u.x,u.y,w.p[0],w.p[1])<VD.wire.w){k*=w.cut?VD.wire.cutSlow:VD.wire.slow;u.inWire=!w.cut;break;}}   // 鉄条網：切れていない所では、敵の足が止まる
     const st=Math.min(d,sp*k*dt);u.x+=(tx-u.x)/d*st;u.y+=(ty-u.y)/d*st;}
   // 塹壕の中で止まっている部隊は、塹壕の線に沿って広がる（dep＝{i:塹壕の番号, s:線の上の位置}）
   for(const u of U){if(u.mg)continue;const q=!u.moving&&!u.dug&&u.state!=='rout'?trenchAt(u.x,u.y):null;u.dep=q&&q.d<13*UZ?{i:q.i,s:q.s}:null;}
@@ -1270,7 +1275,7 @@ function tick(S,dt){if(S.over)return;S.t+=dt;let U=S.units;
   // 白兵戦：塹壕か要塞の中で、敵の歩兵どうしがふれ合うと、撃ち合いではなく、白兵戦になる。
   //   おたがいに大きな損害を受け、士気も大きく下がる。先にその場を固めていた側が、少し有利
   for(const u of U){u.melee=0;const w=!u.mg&&!u.moving&&u.state!=='rout'&&terrain(u.x,u.y)!=='open'&&terrain(u.x,u.y)!=='forest';u.holdT=w?(u.holdT||0)+dt:0;}
-  for(let i=0;i<U.length;i++)for(let j=i+1;j<U.length;j++){const a=U[i],b=U[j];if(a.side===b.side||a.mg||b.mg||a.dug||b.dug||a.state==='rout'||b.state==='rout')continue;if(hyp(a.x-b.x,a.y-b.y)>=VD.melee.r)continue;
+  for(let i=0;i<U.length;i++)for(let j=i+1;j<U.length;j++){const a=U[i],b=U[j];if(a.side===b.side||a.mg||b.mg||a.dug||b.dug||a.tank||b.tank||a.state==='rout'||b.state==='rout')continue;if(hyp(a.x-b.x,a.y-b.y)>=VD.melee.r)continue;
     const ta=terrain(a.x,a.y),tb=terrain(b.x,b.y),wk=t=>t==='trench'||t==='fort';if(!wk(ta)&&!wk(tb)&&!a.charge&&!b.charge)continue;a.melee=b.id;b.melee=a.id;
     for(const [p,q,tp] of [[a,b,ta],[b,a,tb]]){const d=VD.melee.dmg*p.q*(p.mask?VD.gas.maskFire:1)*(p.men/VD.unitMen)*(p.side==='g'?VD.melee.g:1)*(tp==='fort'&&p.garr?VD.melee.fort:p.holdT>3?VD.melee.def:1);hurt(S,q,d*dt,d*dt*VD.morLoss*VD.melee.mor);}}
   // 撃ち合い：いちばん近い敵を撃つ。守る側の地形と、高さで、損害が変わる
@@ -1278,11 +1283,13 @@ function tick(S,dt){if(S.over)return;S.t+=dt;let U=S.units;
   //   1つの部隊を同時に撃てるのは、近い順に front 部隊まで。それより多い分は、力が extra 倍に落ちる（大勢で1か所に集まっても、前に出られる数は限られる）
   const shots=new Map();
   for(const u of U){if(u.state==='rout'||u.melee||u.setup>0||u.dug)continue;let best=null,bd=u.mg?VD.mg.range:VD.range;const arc=arcOf(u);for(const v of U){if(v.side===u.side||(u.mg&&v.mg)||v.dug)continue;const dc=hyp(v.x-u.x,v.y-u.y),bw=v.mg?0:(VD.body||0),d=dc-bw;if(d>=bd)continue;const a=Math.atan2(v.y-u.y,v.x-u.x)-u.fa;if(Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))>arc+Math.atan2(bw,Math.max(1,dc)))continue;bd=d;best=v;}   // 敵の部隊の広がり（body）の一部でも射程と扇形に入れば、撃つ   // 扇形の中の、いちばん近い敵
-    if(!best)continue;let dmg=(u.mg?VD.mg.fire:VD.fire*(u.side==='g'?VD.gFire:1)*u.q*(u.men/VD.unitMen)*(u.moving?VD.moveFire:1)*(u.mask?VD.gas.maskFire:1))*coverOf(best);if(height(u.x,u.y)>height(best.x,best.y)+12)dmg*=VD.high;if(best.state==='rout')dmg*=.5;
+    if(u.gun&&VD.fgun){let bt=null,btd=VD.fgun.range;for(const v of U)if(v.tank&&v.side!==u.side){const d=hyp(v.x-u.x,v.y-u.y);if(d<btd){btd=d;bt=v;}}if(bt){best=bt;bd=btd;}else if(best&&bd>VD.mg.range)best=null;}   // 野砲は、射程の中の戦車を先にねらう
+    if(!best)continue;let dmg=(u.gun&&VD.fgun?VD.fgun.fire:u.mg?VD.mg.fire:VD.fire*(u.side==='g'?VD.gFire:1)*u.q*(u.men/VD.unitMen)*(u.moving?VD.moveFire:1)*(u.mask?VD.gas.maskFire:1))*coverOf(best);if(height(u.x,u.y)>height(best.x,best.y)+12)dmg*=VD.high;if(best.state==='rout')dmg*=.5;
+    if(u.tank)dmg*=VD.tank.fire*(u.broken?VD.tank.brokenFire:1)*(best.mg?VD.tank.vsMg:1);if(best.tank)dmg*=u.gun?VD.fgun.vsTank:VD.tank.small;if(u.gun&&!best.tank)dmg*=VD.fgun.vsMen;
     u.fire=1;u.aim=best.id;if(!shots.has(best))shots.set(best,[]);shots.get(best).push([bd,dmg,u.mg?VD.mg.mor:1]);}
   for(const [v,L] of shots){L.sort((a,b)=>a[0]-b[0]);let sum=0,ms=0;L.forEach((s,i)=>{const k=i<VD.front?1:VD.extra;sum+=s[1]*k;ms+=s[1]*k*s[2];});hurt(S,v,sum*dt,ms*dt*VD.morLoss*(v.moving?VD.pinned:1));}   // 機関銃は、士気を大きくけずる（頭を上げられなくなる）
   // 砲撃
-  for(const b of S.barr){if(b.warn>0){b.warn-=dt;continue;}b.t-=dt;for(const v of U){if(v.dug||(b.prep&&v.mg))continue;if(hyp(v.x-b.x,v.y-b.y)<VD.art.r){const c=v.mg?VD.mg.art:Math.pow(coverOf(v),.75);hurt(S,v,VD.art.men*c*dt,VD.art.mor*c*dt);}}
+  for(const b of S.barr){if(b.warn>0){b.warn-=dt;continue;}b.t-=dt;for(const v of U){if(v.dug||(b.prep&&v.mg))continue;if(hyp(v.x-b.x,v.y-b.y)<VD.art.r){const c=v.tank?VD.tank.art:v.mg?VD.mg.art:Math.pow(coverOf(v),.75);hurt(S,v,VD.art.men*c*dt,VD.art.mor*c*dt);}}
     b.fxT-=dt;if(b.fxT<=0){b.fxT=.2;const a=Math.random()*6.283,r=Math.sqrt(Math.random())*VD.art.r;S.fx.push({x:b.x+Math.cos(a)*r,y:b.y+Math.sin(a)*r,t:0,side:b.side});}}
   S.barr=S.barr.filter(b=>b.t>0);S.artWait=Math.max(0,S.artWait-dt);
   // 毒ガス：撃ちこまれた所に、ガスがたまる。ガスは、しばらくその場に残り、風で少しずつ流れ、やがてうすれて消える
@@ -1302,20 +1309,21 @@ function tick(S,dt){if(S.over)return;S.t+=dt;let U=S.units;
     if(best)S.barr.push({x:best.x,y:best.y,t:VD.art.sec,warn:VD.art.warn,fxT:0,side:'f',isNew:true});}
   // 士気：撃たれていなければもどる。切れると退き、もどると、また戦える
   //   一度退くたびに、士気の上限が tire だけ下がる（何度も立て直すうちに、つかれていく）
-  for(const u of U){if(u.mg)continue;if(u.hit>2.5)u.mor=Math.min(u.top||100,u.mor+VD.recover*dt);
+  for(const u of U){if(u.mg||u.tank)continue;if(u.hit>2.5)u.mor=Math.min(u.top||100,u.mor+VD.recover*dt);
     if(u.state!=='rout'&&u.mor<u.routAt){u.state='rout';u.dep=null;u.top=Math.max(VD.rally+5,(u.top||100)-VD.tire);if(u.men<VD.breakMen)u.gone=true;}   // 兵力が少ない部隊は、退くときにばらばらになって、もどらない
     else if(u.state==='rout'&&u.mor>=VD.rally){u.state='idle';u.tx=u.x;u.ty=u.y;}}
   // 機関銃の火点は、敵の歩兵にふみこまれると、つぶれる
   for(const u of U)if(u.mg)for(const v of U)if(v.side!==u.side&&!v.mg&&!v.dug&&v.state!=='rout'&&hyp(v.x-u.x,v.y-u.y)<VD.mg.overrun){u.men=0;S.fx.push({x:u.x,y:u.y,t:0,side:v.side,small:true});break;}
   for(const u of U)if(u.mg&&u.men<=0)S.wreck.push([u.x,u.y,u.side]);
+  for(const u of U)if(u.tank&&u.men<=VD.dead){(S.tankWreck=S.tankWreck||[]).push([u.x,u.y,u.fa]);S.fx.push({x:u.x,y:u.y,t:0,side:'g'});}
   for(const u of U)if(!u.mg&&(u.men<=VD.dead||u.gone)){S.gone[u.side]++;S.lost.push({id:u.id,dead:u.men<=VD.dead});}
   U=S.units=U.filter(u=>u.mg?u.men>0:u.men>VD.dead&&!u.gone);
   // 目標の地点：おさえる側の部隊がいて、相手がいなければ、時間がたまる
   // 守る所がいくつもある戦い：村ごとに、持っている側（ドイツ軍か、取った敵か）の部隊が近くにいなくて、相手の部隊が輪の中にいると、時間がたまる。たまりきると、持ち主が入れかわる
-  if(S.goals){let mx=-1;for(const G of S.goals){const hold=G.lost?'f':'g';let a=0,b=0;for(const u of U){if(u.state==='rout'||u.mg||u.dug)continue;const d=hyp(u.x-G.x,u.y-G.y);if(u.side!==hold&&d<VD.capR)a++;if(u.side===hold&&d-(u.dep?depLen(u)/2:(VD.body||0)*.5)<VD.capR*1.27)b++;}
+  if(S.goals){let mx=-1;for(const G of S.goals){const hold=G.lost?'f':'g';let a=0,b=0;for(const u of U){if(u.state==='rout'||u.mg||u.dug||u.tank)continue;const d=hyp(u.x-G.x,u.y-G.y);if(u.side!==hold&&d<VD.capR)a++;if(u.side===hold&&d-(u.dep?depLen(u)/2:(VD.body||0)*.5)<VD.capR*1.27)b++;}
       G.cap=cl(G.cap+(a>0&&b===0?dt:-dt*.5),0,VD.capSec);
       if(G.cap>=VD.capSec){G.cap=0;G.lost=!G.lost;S.lostN+=G.lost?1:-1;S.note=G.name+(G.lost?VD.text.lostNote:VD.text.backNote);
-        if(G.lost){let bu=null,bd=VD.capR*1.3;for(const u of U)if(u.side==='f'&&!u.mg&&u.state!=='rout'){const d=hyp(u.x-G.x,u.y-G.y);if(d<bd){bd=d;bu=u;}}if(bu){bu.atk=false;bu.post=[G.x,G.y];}}}   // 取った部隊のうち1つは、その村に残って守る
+        if(G.lost){let bu=null,bd=VD.capR*1.3;for(const u of U)if(u.side==='f'&&!u.mg&&!u.tank&&u.state!=='rout'){const d=hyp(u.x-G.x,u.y-G.y);if(d<bd){bd=d;bu=u;}}if(bu){bu.atk=false;bu.post=[G.x,G.y];}}}   // 取った部隊のうち1つは、その村に残って守る
       if(!G.lost&&G.cap>mx){mx=G.cap;S.goal=[G.x,G.y];}}S.cap=Math.max(0,mx);}
   else{const own=S.mode==='atk'?'g':'f',[gx,gy]=S.goal;let a=0,b=0;for(const u of U){if(u.state==='rout'||u.mg)continue;const d=hyp(u.x-gx,u.y-gy);if(u.side===own&&d<VD.capR)a++;if(u.side!==own&&d-(u.dep?depLen(u)/2:(VD.body||0)*.5)<VD.capR*1.27)b++;}
   S.cap=cl(S.cap+(a>0&&b===0?dt:-dt*.5),0,VD.capSec);S.contest=a>0&&b>0;}
@@ -1331,7 +1339,7 @@ function auto(S,smart){const G=S.units.filter(u=>u.side==='g'&&!u.mg&&!u.dug&&u.
     for(const u of G)if(u.home&&!u.foe&&!u.sent&&hyp(u.x-u.home[0],u.y-u.home[1])>6*UZ){u.tx=u.home[0];u.ty=u.home[1];}
     for(const q of S.goals){if(!q.lost||(!smart&&S.t%20>10))continue;if(G.some(u=>u.sent===q))continue;const L=G.filter(u=>!u.sent&&u.mor>60&&u.men>55).sort((a,b)=>hyp(a.x-q.x,a.y-q.y)-hyp(b.x-q.x,b.y-q.y));if(L[0]&&hyp(L[0].x-q.x,L[0].y-q.y)<VD.range*5){L[0].sent=q;L[0].tx=q.x;L[0].ty=q.y;}}
     for(const u of G)if(u.sent&&!u.sent.lost){u.home=[u.sent.x,u.sent.y];u.sent=null;}
-    if(S.shots>0&&S.artWait<=0){let tg=null,bd=VD.range*(smart?2.4:1.6);for(const v of S.units)if(v.side==='f'&&!v.mg&&v.state!=='rout'){for(const q of S.goals){const d=hyp(v.x-q.x,v.y-q.y)*(v.inWire?.6:1);if(d<bd){bd=d;tg=v;}}}if(tg)fireArt(S,tg.x,tg.y);}
+    if(S.shots>0&&S.artWait<=0){let tg=null,bd=VD.range*(smart?2.4:1.6);for(const v of S.units)if(v.side==='f'&&!v.mg&&v.state!=='rout'){for(const q of S.goals){const d=hyp(v.x-q.x,v.y-q.y)*(v.inWire?.6:1)*(v.tank&&!v.broken&&smart?.45:1);if(d<bd){bd=d;tg=v;}}}if(tg)fireArt(S,tg.x,tg.y);}
     if(smart&&S.mgLeft>0&&S.lifted&&G.length){const u=G[Math.floor(Math.random()*G.length)];placeMG(S,u.x+(Math.random()*2-1)*VD.mg.overrun*2,u.y+VD.mg.overrun*1.2);}
     return;}
   // 上手な操作：ガスが来る所・ガスが残っている所の近くにいる部隊には、ガスマスクを着けさせる。はなれたら外させる
@@ -1359,7 +1367,7 @@ return {make,tick,order,attack,charge,emerge,refill,fireArt,fireGas,mask,gasR,ga
 /* ===== ヴェルダンの戦い：画面 =====
    VUI.start(入れ物, {mode:'atk'|'def', units:部隊の数, shots:砲撃の回数, enemy:敵の倍率, onEnd:終わったときに呼ぶ関数, proto:試作用の切りかえを出すか}) */
 const VUI=(()=>{
-let treeIm=null;
+let treeIm=null,tankWrecks=[];
 // 線をなめらかにする：となりの点とならしたあと、角を少しずつ切り落とす（チャイキン法）。両はしの点は動かさない
 function smoothLine(P,n){let L=P.map(p=>[p[0],p[1]]);for(let k=0;k<2;k++)L=L.map((p,i)=>i===0||i===L.length-1?p:[(L[i-1][0]+2*p[0]+L[i+1][0])/4,(L[i-1][1]+2*p[1]+L[i+1][1])/4]);
   for(let k=0;k<n;k++){const o=[L[0]];for(let i=0;i<L.length-1;i++){const a=L[i],b=L[i+1];o.push([a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]);}o.push(L[L.length-1]);L=o;}return L;}
@@ -1385,7 +1393,7 @@ function face(u,dt){if(u.fa===undefined)u.fa=u.side==='g'?Math.PI/2:-Math.PI/2;}
 // 横隊の列の数：人数が少ない部隊は、列をへらして、横に長い形をたもつ
 const rk=n=>n>70?4:n>36?3:2,UZ=VD.u||1;
 // 部隊の広がり（横の半分 hw、前後の半分 hd）。横隊のときと、塹壕に沿って広がったときで変わる
-function size(u){const F=VD.form,n=u.figs?u.figs.length:VD.figs;if(u.mg)return [13*UZ,10*UZ];if(u.state==='rout'||u.melee)return [VD.spread[0],VD.spread[1]];
+function size(u){const F=VD.form,n=u.figs?u.figs.length:VD.figs;if(u.mg)return [13*UZ,10*UZ];if(u.tank)return [12,8];if(u.state==='rout'||u.melee)return [VD.spread[0],VD.spread[1]];
   if(u.dep)return [VSim.depLen(u)/2+2,9*UZ];const R=rk(n),files=Math.min(F.files,Math.ceil(n/R)),ranks=n<=R*F.files?Math.min(R,n):R+Math.ceil((n-R*F.files)/F.files);return [files*F.gapA/2+3,ranks*F.gapD/2+3];}
 // 兵士の絵を、兵力に合わせて用意し、1人ずつの立つ場所を決める。
 //   ふつうは横隊（2〜4列）。塹壕の中では、塹壕の線に沿って細長く並ぶ。退くときは、ばらばらになる。
@@ -1588,9 +1596,9 @@ function hud(){if(!S)return;const left=Math.max(0,VD.time-S.t),g=S.units.filter(
   {const m=$('.bMG');m.textContent=aim==='mg'?'機関銃：置く所を押す':`機関銃を置く（のこり${S.mgLeft}）`;m.disabled=S.mgLeft<1;m.classList.toggle('on',aim==='mg');}
   const r=$('.bRef');r.textContent=`補充（のこり${S.refills}回）`;r.disabled=S.refills<1;
   const h=hover&&S.units.find(u=>u.id===hover),pc=u=>Math.round(u.men/VD.unitMen*100);
-  $('.vsel').textContent=msgT>0?msg:h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃でつぶすか、歩兵でふみこむ':''}`:h?`${h.side==='g'?'ドイツ軍':''+EN+''}の歩兵部隊${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃は受けないが、撃てない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着けている途中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（はじめの${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.state==='rout'?'（退いている）':''}`:sel.size?`${sel.size}部隊を選んでいる。行き先・塹壕・敵の部隊を押す。`:'部隊を押して選ぶ。わくで囲むと、まとめて選べる。';}
+  $('.vsel').textContent=msgT>0?msg:h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃でつぶすか、歩兵でふみこむ':''}`:h?`${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃は、ほとんど効かない。砲撃か野砲で止める）'+(h.broken?'　故障して止まっている':'')):h.gun?(EN_?' field gun':'の野砲（戦車をねらう）'):'の歩兵部隊'}${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃は受けないが、撃てない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着けている途中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（はじめの${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.state==='rout'?'（退いている）':''}`:sel.size?`${sel.size}部隊を選んでいる。行き先・塹壕・敵の部隊を押す。`:'部隊を押して選ぶ。わくで囲むと、まとめて選べる。';}
 // 機関銃の火点を描く：土のうの半円と、銃。向きは、撃っている相手のほう。置いたばかりの火点は、うすく描く
-function drawMG(u,dt){const g=ctx,gs=u.side==='g',hv=hover===u.id,MZ=.45+.5*UZ,[px,py]=PX(u.x,u.y),set=u.setup>0;face(u,dt);
+function drawMG(u,dt){if(u.gun)return drawGun(u,dt);const g=ctx,gs=u.side==='g',hv=hover===u.id,MZ=.45+.5*UZ,[px,py]=PX(u.x,u.y),set=u.setup>0;face(u,dt);
   g.save();g.translate(px,py);g.scale(MZ,MZ);if(set)g.globalAlpha=.55;g.fillStyle='rgba(20,23,15,.4)';g.strokeStyle=hv?'#fff':gs?'rgba(232,195,79,.9)':'rgba(140,170,235,.95)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,14,10,0,0,6.283);g.fill();g.stroke();
   if(flash&&flash.id===u.id){g.strokeStyle='#ff6b5c';g.lineWidth=3;g.beginPath();g.ellipse(0,0,18,13,0,0,6.283);g.stroke();}
   g.rotate(Math.atan2(Math.sin(u.fa)*VW.sy,Math.cos(u.fa)));for(let i=-3;i<=3;i++){const t=i*.4;g.fillStyle=i%2?'#bba97f':'#a5936b';g.strokeStyle='#4c4130';g.lineWidth=.8;g.beginPath();g.ellipse(Math.cos(t)*9.5,Math.sin(t)*9.5,3.3,2.3,t+Math.PI/2,0,6.283);g.fill();g.stroke();}
@@ -1607,16 +1615,29 @@ function unitName(u){if(u.rname)return u.rname;let bn=null,bd=1e9;for(const p of
   const w=VD.text.unitWord||'連隊';u.rname=EN_?(w==='大隊'?'battalion':'regiment')+(bn?' at '+bn:''):(bn?bn+'の':'')+(u.dep||S.mode==='atk'?'':'予備の')+w;return u.rname;}
 function report(u,kind,lv){const T=((S.mode==='atk'&&VD.text.repAtk)||{})[kind]||(VD.text.rep||{})[kind];if(!T||!T.length)return false;const st=RP.st.get(u.id)||{};RP.st.set(u.id,st);if(S.t-(st[kind]??-99)<RP.cd||S.t-RP.last<RP.gap&&lv<2)return false;st[kind]=S.t;RP.last=S.t;
   const SB=VD.text.subUnits||(EN_?['1st Battalion','2nd Battalion','3rd Battalion']:['第1大隊','第2大隊','第3大隊']),bb=SB[Math.floor(Math.random()*SB.length)],t=T[Math.floor(Math.random()*T.length)].replace('{u}',unitName(u)).replace('{b}',bb).replace('{n}',MS?fmt(ppl(st.lossW||0)):'');
-  RP.list.unshift({id:u.id,t:S.t,txt:t,lv,from:unitName(u),clock:clock()});RP.list=RP.list.slice(0,4);drawRep();if(lv>=2)snd('whistle',1);return true;}
+  RP.list.unshift({id:u.id,t:S.t,txt:t,lv,x:u.x,y:u.y});RP.list=RP.list.filter(r=>r.id!==u.id||r.t===S.t).slice(0,5);if(lv>=2)snd('whistle',1);return true;}
 function clock(){const m=Math.floor((VD.clock0||450)+S.t*(VD.clockK||2.4)),h=Math.floor(m/60)%24;return EN_?h+':'+String(m%60).padStart(2,'0'):h+'時'+String(m%60).padStart(2,'0')+'分';}   // ゲームの中の時刻（VD.clock0＝始まりの時刻を0時からの分で、VD.clockK＝1秒が何分か）
+// 吹き出し：報告した部隊の上に、小さな文字で出す。RP.life 秒たつと消える。近くの吹き出しと重なるときは、上にずらす
+function wrapText(g,t,W){const L=[];let line='';for(const ch of t){if(g.measureText(line+ch).width>W&&line){L.push(line);line=/[、。！？）」]/.test(ch)?'':ch;if(line==='')L[L.length-1]+=ch;}else line+=ch;}if(line)L.push(line);return L;}
+function drawBubbles(){if(!S||!RP.list.length)return;const g=ctx,life=VD.repLife||7,z=Math.max(1,zoom),fs=10/Math.sqrt(z),pad=3.5/Math.sqrt(z),W=150/Math.sqrt(z),lh=fs*1.3,boxes=[];
+  RP.list=RP.list.filter(r=>S.t-r.t<life);g.save();g.font=`700 ${fs}px "BIZ UDPGothic",sans-serif`;g.textAlign='left';g.textBaseline='top';
+  for(const r of RP.list.slice().reverse()){const u=S.units.find(q=>q.id===r.id);if(u){r.x=u.x;r.y=u.y;}const p=PX(r.x,r.y),L=wrapText(g,r.txt,W),w=Math.max(...L.map(l=>g.measureText(l).width))+pad*2+3,h=L.length*lh+pad*2;
+    let x=p[0]-w/2,y=Math.max(camY+4/z,p[1]-46/Math.sqrt(z)-h);for(let k=0;k<6;k++){const hit=boxes.find(b=>x<b[0]+b[2]&&x+w>b[0]&&y<b[1]+b[3]&&y+h>b[1]);if(!hit)break;y=hit[1]-h-3;}boxes.push([x,y,w,h]);
+    const age=S.t-r.t,a=Math.min(1,age*4,(life-age)/1.2);g.globalAlpha=Math.max(0,a);
+    g.fillStyle=r.lv>=2?'rgba(52,16,13,.88)':'rgba(18,20,17,.84)';g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,3);else g.rect(x,y,w,h);g.fill();
+    g.beginPath();g.moveTo(p[0]-4,y+h);g.lineTo(p[0]+4,y+h);g.lineTo(p[0],y+h+5);g.fill();
+    g.fillStyle=r.lv>=2?'#d9493b':r.lv===1?'#e0b25a':'#7da86a';g.fillRect(x,y,2.5,h);
+    g.fillStyle='#f3ead2';L.forEach((l,i)=>g.fillText(l,x+pad+3,y+pad+i*lh));}
+  g.restore();}
 function drawRep(){if(!RP.box)return;RP.box.innerHTML=RP.list.map((r,i)=>`<button class="lv${r.lv}" data-id="${r.id}" style="opacity:${i?Math.max(.45,1-i*.18):1}"><small>${r.clock}　${EN_?"from the "+r.from:r.from+"より"}</small>${r.txt}</button>`).join('');}
-function reportTick(){if(!RP.box){RP.box=cv.parentNode.querySelector('.vrep');RP.box.onclick=e=>{const b=e.target.closest('button');if(!b||!S)return;const q=S.units.find(z=>z.id===+b.dataset.id);if(q){sel.clear();sel.add(q.id);hud();}};}
+function reportTick(){
   const k=Math.floor(S.t);if(k===RP.k)return;RP.k=k;   // 1秒に1回だけ調べる
   for(const u of S.units){if(u.side!=='g'||u.mg)continue;const st=RP.st.get(u.id)||{};RP.st.set(u.id,st);const H=st.h||(st.h=[]);H.push(u.men);if(H.length>7)H.shift();const w=H[0]-u.men;st.lossW=w*1;st.men0=st.men0||VD.unitMen;
     if(u.men<=0)continue;
     if(u.state==='rout'){report(u,'rout',2);continue;}
     if(u.dug&&!(u.dugT>0)&&S.lifted&&S.units.some(v=>v.side==='f'&&!v.mg&&hyp(v.x-u.x,v.y-u.y)<VD.range*1.6)){report(u,'dugNear',2);continue;}
     if(u.melee){report(u,'melee',2);continue;}
+    if(VD.tank&&S.units.some(v=>v.tank&&!v.broken&&hyp(v.x-u.x,v.y-u.y)<VD.range*1.5)&&report(u,'tank',2))continue;
     if(w>=VD.unitMen*.06&&!st.cmd&&u.men<VD.unitMen*.8&&Math.random()<.18){st.cmd=1;report(u,'cmdr',2);continue;}
     if(u.men<VD.unitMen*.5&&!st.half){st.half=1;report(u,'half',2);continue;}
     if(w>=VD.unitMen*.07){report(u,'heavy',2);continue;}
@@ -1634,7 +1655,22 @@ function drawFloats(dt){const g=ctx;g.font='700 12px "BIZ UDPGothic",sans-serif'
 function drawDug(u){const g=ctx,[px,py]=PX(u.x,u.y),on=sel.has(u.id),hv=hover===u.id,k=u.dugT>0?1-u.dugT/VD.dug.sec:0;g.save();if(on){g.fillStyle='rgba(255,214,90,.28)';g.strokeStyle='#ffd65a';g.lineWidth=2.5;g.beginPath();g.ellipse(px,py,26,14,0,0,6.283);g.fill();g.stroke();}g.fillStyle='#17130ddd';g.strokeStyle=on?'#ffd65a':hv?'#fff':'#e8c34f';g.lineWidth=on?2.2:1.2;g.beginPath();g.ellipse(px,py,15,7.5,0,0,6.283);g.fill();g.stroke();g.fillStyle='#000';g.fillRect(px-5,py-3,10,5);
   if(k>0){g.strokeStyle='#8fbf6f';g.lineWidth=3;g.beginPath();g.ellipse(px,py,19,10.5,0,-Math.PI/2,-Math.PI/2+6.283*k);g.stroke();}
   const t=k>0?'上がる途中':'地下壕',w=24;g.font='700 10px "BIZ UDPGothic",sans-serif';g.textAlign='center';g.lineWidth=3;g.strokeStyle='#14170f';g.fillStyle='#f1d882';g.strokeText(t,px,py-12);g.fillText(t,px,py-12);g.fillStyle='#14170fcc';g.fillRect(px-w/2-1,py+10,w+2,5);g.fillStyle='#e8c34f';g.fillRect(px-w/2,py+11,w*Math.min(1,u.men/(VD.unitMen*1.6)),3);if(MS)menTag(g,u,px+w/2+4,py+12.5);g.restore();}
-function drawUnit(u,dt){if(u.mg)return drawMG(u,dt);if(u.dug)return drawDug(u);const g=ctx,k=u.side==='g'?'g':'fr',im=imgs[k],on=sel.has(u.id),hv=hover===u.id,rt=u.state==='rout',ml=!!u.melee&&!rt,s=VD.figSize,gs=u.side==='g';syncFigs(u,dt);const [hw,hd]=size(u),[px,py]=PX(u.x,u.y);
+// 野砲：車輪2つと、長い砲身と、盾。戦車をねらっているときは、砲身をそちらへ向ける
+function drawGun(u,dt){const g=ctx,hv=hover===u.id,MZ=.5+.5*UZ,[px,py]=PX(u.x,u.y);face(u,dt);g.save();g.translate(px,py);g.scale(MZ,MZ);g.fillStyle='rgba(20,23,15,.45)';g.strokeStyle=hv?'#fff':'rgba(232,195,79,.9)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,16,11,0,0,6.283);g.fill();g.stroke();
+  g.rotate(Math.atan2(Math.sin(u.fa)*VW.sy,Math.cos(u.fa)));g.strokeStyle='#1e1d19';g.lineWidth=3;g.beginPath();g.moveTo(-9,0);g.lineTo(14,0);g.stroke();g.fillStyle='#5d5a47';g.fillRect(-3,-7,3,14);g.fillStyle='#2b2a25';for(const yy of [-7.5,7.5]){g.beginPath();g.ellipse(-4,yy,4.2,2.2,0,0,6.283);g.fill();}g.strokeStyle='#3b3a33';g.lineWidth=2;g.beginPath();g.moveTo(-5,0);g.lineTo(-14,0);g.stroke();g.restore();
+  const w=18,x0=px-w/2,y0=py-14*MZ-4;g.fillStyle='#14170fcc';g.fillRect(x0-1,y0-1,w+2,4.4);g.fillStyle='#e8c34f';g.fillRect(x0,y0,w*u.men/VD.mg.men,2.4);
+  const nm=EN_?'field gun':'野砲';g.font='700 9px "BIZ UDPGothic",sans-serif';g.textAlign='center';g.lineWidth=2.5;g.strokeStyle='#14170fcc';g.fillStyle='#f1ead6';g.strokeText(nm,px,py+12*MZ+9);g.fillText(nm,px,py+12*MZ+9);}
+// 戦車：8つの向きの絵から、いちばん近い向きを選んで描く。故障した戦車は、灰色にして煙を出す
+let tankIm=null;
+function drawTank(u,dt){const g=ctx,T=window.VART&&VART.tank,hv=hover===u.id,[px,py]=PX(u.x,u.y),sz=(T?T.size:28)*(.55+.45*UZ);if(T&&!tankIm){tankIm=new Image();tankIm.src=T.src;}
+  if(!u.broken&&(u.moving||u.foe)){const want=u.moving?Math.atan2(u.ty-u.y,u.tx-u.x):u.fa,d=Math.atan2(Math.sin(want-(u.va??want)),Math.cos(want-(u.va??want)));u.va=(u.va??want)+d*Math.min(1,dt*2);}
+  const a=u.va??-Math.PI/2,k=((Math.round(-a/(Math.PI/4))%8)+8)%8;g.save();g.fillStyle='rgba(10,10,8,.35)';g.beginPath();g.ellipse(px,py+2,sz*.42,sz*.42*VW.sy,0,0,6.283);g.fill();g.strokeStyle=hv?'#fff':'rgba(160,190,245,.85)';g.lineWidth=hv?2:1.3;g.beginPath();g.ellipse(px,py,sz*.5,sz*.5*VW.sy,0,0,6.283);g.stroke();
+  if(tankIm&&tankIm.complete){if(u.broken)g.filter='grayscale(.7) brightness(.75)';g.drawImage(tankIm,k*T.s,0,T.s,T.s,px-sz/2,py-sz*.62,sz,sz);g.filter='none';}
+  else{g.fillStyle=u.broken?'#6d6a5c':'#8a7a4c';g.fillRect(px-sz*.35,py-sz*.18,sz*.7,sz*.3);}
+  if(u.broken){const t=tsec*.8+u.id;for(let i=0;i<3;i++){const f=((t+i/3)%1);g.fillStyle=`rgba(60,58,52,${(.45*(1-f)).toFixed(2)})`;g.beginPath();g.arc(px+Math.sin(t*2+i)*3,py-sz*.4-f*18,3+f*7,0,6.283);g.fill();}}
+  const w=22,x0=px-w/2,y0=py-sz*.62-5;g.fillStyle='#14170fcc';g.fillRect(x0-1,y0-1,w+2,4.4);g.fillStyle='#9db7ee';g.fillRect(x0,y0,w*Math.max(0,u.men/VD.tank.hp),2.4);
+  const nm=u.broken?(EN_?'broken down':'故障'):(EN_?'tank':'戦車');g.font='700 9.5px "BIZ UDPGothic",sans-serif';g.textAlign='center';g.lineWidth=2.5;g.strokeStyle='#14170fcc';g.fillStyle=u.broken?'#d8d2bd':'#c9d6f2';g.strokeText(nm,px,y0-3);g.fillText(nm,px,y0-3);g.restore();}
+function drawUnit(u,dt){if(u.mg)return drawMG(u,dt);if(u.tank)return drawTank(u,dt);if(u.dug)return drawDug(u);const g=ctx,k=u.side==='g'?'g':'fr',im=imgs[k],on=sel.has(u.id),hv=hover===u.id,rt=u.state==='rout',ml=!!u.melee&&!rt,s=VD.figSize,gs=u.side==='g';syncFigs(u,dt);const [hw,hd]=size(u),[px,py]=PX(u.x,u.y);
   const fill=ml?'rgba(226,89,75,.26)':on?'rgba(255,214,90,.3)':hv?'rgba(255,255,255,.26)':gs?'rgba(232,195,79,.16)':'rgba(109,143,210,.2)',line=ml?'#e2594b':on?'#ffd65a':hv?'#ffffff':gs?'rgba(232,195,79,.55)':'rgba(140,170,235,.6)',lw=on?1.8:hv?1.6:.8;
   const shape=(pad)=>{g.beginPath();if(rt||ml)g.ellipse(px,py,hw+pad,(hd+pad)*VW.sy,0,0,6.283);
     else if(u.dep){const L=VSim.depLen(u),TL=VSim.trenchLen(u.dep.i),a=Math.max(0,u.dep.s-L/2),b=Math.min(TL,u.dep.s+L/2);for(let q=a;;q+=8){const t=VSim.trenchPt(u.dep.i,Math.min(q,b)),p=PX(t[0],t[1]);q===a?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1]);if(q>=b)break;}}
@@ -1675,6 +1711,8 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   // 鉄条網：切れていない所はこい点線、砲撃で切れた所はうすいまばらな線
   if(VD.wires)for(const w of VD.wires){const a=w.p[0],b=w.p[1],L=hyp(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.round(L/(w.cut?16:6)));g.lineWidth=w.cut?1:1.3;for(let k=0;k<=n;k++){const p=PX(a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n),r=w.cut?2:3.2;g.strokeStyle=w.cut?'rgba(20,17,13,.45)':'rgba(14,12,10,.9)';g.beginPath();g.moveTo(p[0]-r,p[1]-r*.7);g.lineTo(p[0]+r,p[1]+r*.7);g.moveTo(p[0]+r,p[1]-r*.7);g.lineTo(p[0]-r,p[1]+r*.7);g.stroke();}
     if(!w.cut){g.beginPath();const p0=PX(a[0],a[1]),p1=PX(b[0],b[1]);g.moveTo(p0[0],p0[1]);g.lineTo(p1[0],p1[1]);g.strokeStyle='rgba(190,180,150,.35)';g.lineWidth=.8;g.stroke();}}
+  // こわれた戦車の残骸
+  if(tankIm&&tankIm.complete)for(const w of tankWrecks){const p=PX(w[0],w[1]),T=VART.tank,sz=T.size*(.55+.45*UZ),k=((Math.round(-w[2]/(Math.PI/4))%8)+8)%8;g.save();g.globalAlpha=.85;g.filter='grayscale(1) brightness(.45)';g.drawImage(tankIm,k*T.s,0,T.s,T.s,p[0]-sz/2,p[1]-sz*.62,sz,sz);g.restore();}
   // 全滅した部隊：残っていた兵士も、その場にたおれる（ばらばらになって消えた部隊は、いなくなるだけ）
   for(const L of S.lost){const q=prevU.find(v=>v.id===L.id);if(q&&L.dead&&q.figs)for(const f of q.figs){const bp=PX(f.x,f.y);bodies.push({x:bp[0],y:bp[1],k:q.side==='g'?'g':'fr',t:-Math.random()*.4});bleed(f.x,f.y);}}S.lost.length=0;prevU=S.units.slice();
   // たおれる兵士：たおれる絵を順に見せて、終わったら、たおれた姿を地面に描きこんで残す
@@ -1692,7 +1730,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   // 砲弾が落ちる：音、地面のあと、画面のゆれ、爆発の効果
   for(const f of S.fx){const p=PX(f.x,f.y);if(f.t===0){const k=f.big?2.8:f.small?.55:.85+Math.random()*.6;snd('boom',.13);if(!f.small)snd('bigboom',.7);scar(f.x,f.y,((f.small?5:7)+k*5)*(.3+.7*UZ));shake=Math.max(shake,f.big?.8:f.small?.12:.26);if(vfx)vfx.boom(p[0],p[1],k,f.side);}
     f.t+=dt;const u=f.t/.8;if(u<1&&!vfx){g.fillStyle=`rgba(255,${170-u*90|0},${90-u*60|0},${(.75*(1-u)).toFixed(2)})`;g.beginPath();g.arc(p[0],p[1],4+u*12,0,6.283);g.fill();g.fillStyle=`rgba(70,60,50,${(.45*(1-u)).toFixed(2)})`;g.beginPath();g.arc(p[0],p[1]-u*10,8+u*14,0,6.283);g.fill();}}
-  for(const w of S.wreck)scar(w[0],w[1],13*(.3+.7*UZ));S.wreck.length=0;
+  for(const w of S.wreck)scar(w[0],w[1],13*(.3+.7*UZ));S.wreck.length=0;if(S.tankWreck){for(const w of S.tankWreck)tankWrecks.push(w);S.tankWreck.length=0;}
   // 画面のゆれ（VD.fx.shake を 0 にすると、ゆれない）
   {const A=VD.fx.shake*Math.max(0,shake)/.26,tf=shake>0&&A?`translate(${(Math.sin(tsec*71)*A).toFixed(1)}px,${(Math.cos(tsec*53)*A).toFixed(1)}px)`:'';if(cv.style.transform!==tf){cv.style.transform=tf;if(!fxcv)fxcv=root.querySelector('.vfx');if(fxcv)fxcv.style.transform=tf;}shake-=dt;}
   S.fx=S.fx.filter(f=>f.t<.8);
@@ -1722,6 +1760,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   if(aim&&gm&&mouse){const ok=aim!=='mg'||S.units.some(u=>u.side==='g'&&!u.mg&&u.state!=='rout'&&hyp(u.x-gm[0],u.y-gm[1])<VD.mg.placeR);g.strokeStyle=aim==='gas'?'#c9e06a':ok?'#ffd65a':'#ff6b5c';g.lineWidth=1.6;g.setLineDash([5,4]);ring(gm[0],gm[1],aim==='art'?VD.art.r:aim==='gas'?VD.gas.r:VD.mg.range);g.stroke();g.setLineDash([]);if(aim==='mg'){g.fillStyle=ok?'#ffd65a':'#ff6b5c';ring(gm[0],gm[1],4);g.fill();}}
   // 方位：地図の上が北でない戦いでは、北の向きを矢印で示す
   if(VD.rot!==undefined){const z=zoom,th=VD.rot*Math.PI/180,nx=-Math.sin(th),ny=-Math.cos(th);g.save();g.translate(camX+30/z,camY+(SH-30)/z);g.scale(1/z,1/z);g.fillStyle='#14170fcc';g.beginPath();g.arc(0,0,21,0,6.283);g.fill();g.strokeStyle='#f1d882';g.lineWidth=2;g.beginPath();g.moveTo(-nx*13,-ny*13);g.lineTo(nx*9,ny*9);g.stroke();g.fillStyle='#f1d882';g.beginPath();g.moveTo(nx*17,ny*17);g.lineTo(nx*7-ny*5,ny*7+nx*5);g.lineTo(nx*7+ny*5,ny*7-nx*5);g.fill();g.font='700 10px "BIZ UDPGothic",sans-serif';g.textAlign='center';g.fillText('北',-nx*9+ny*8,-ny*9-nx*8+4);g.restore();}
+  drawBubbles();   // 部隊からの報告の吹き出しは、旗や部隊より上に描く
   {const e=document.getElementById('vFxState');if(e){const t=window.VFX&&VFX.ready?'使えている':(VD.fx&&VD.fx.lib===false)?'切ってある':'使えていない（簡単な光だけで表す）';if(e.textContent!==t)e.textContent=t;}}
   drawHint(hint());
   if(drag&&hyp(drag.x2-drag.x,drag.y2-drag.y)>10){g.strokeStyle='#ffd65a';g.lineWidth=1.5;g.setLineDash([4,3]);g.strokeRect(drag.x,drag.y,drag.x2-drag.x,drag.y2-drag.y);g.setLineDash([]);}
@@ -1747,11 +1786,11 @@ function intro(){cancelAnimationFrame(raf);S=null;ended=false;if(window.VFX&&VFX
   //   準備と、ボタンを押したときに始まる音の準備が重なると、画面が止まることがあるため
   {const b=$('.bGo'),t=b.textContent,ok=()=>{if(b.isConnected){b.disabled=false;b.textContent=t;}},wait=()=>{if(!b.isConnected)return;if(window.VFX&&VFX.ready){if(!VFX.shown){VFX.shown=true;VFX.reset(cv);setTimeout(ok,250);}else ok();}   // 効果の画面を、ここで先に重ねて、1回描いておく
       else if((VD.fx&&VD.fx.lib===false)||performance.now()>4000)ok();else{b.disabled=true;b.textContent='準備中…';setTimeout(wait,120);}};wait();}$('.bSkip').onclick=()=>{const R=VSim.run(O.mode,O,Math.random()<VD.autoSkill).over;S=null;finish(R,true);};}
-function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
+function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();tankWrecks=[];RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
   if(!tourSeen[O.mode]&&(VD.text.tour||[]).length&&!O.noTour){tourOn=true;setTimeout(()=>{root.scrollIntoView({block:'nearest'});tour(0,go);},350);}else go();}
 function start(el,opt){root=el;O=Object.assign({mode:'atk',units:7,shots:6,enemy:1},opt);loadImgs();
   root.innerHTML=`<div class="vbar"><b class="vtime">残り ${Math.floor(VD.time/60)}分00秒</b><span class="vgoal"></span><span class="vcap"><i></i></span><span class="vcnt"></span></div>
-   <div class="vwrap"><canvas class="vcv"></canvas><div class="vrep" aria-live="polite"></div><div class="vzoom"><button class="bZin" title="大きく映す">＋</button><span class="vzl">×1</span><button class="bZout" title="小さく映す">－</button></div><div class="vov"></div></div>
+   <div class="vwrap"><canvas class="vcv"></canvas><div class="vzoom"><button class="bZin" title="大きく映す">＋</button><span class="vzl">×1</span><button class="bZout" title="小さく映す">－</button></div><div class="vov"></div></div>
    <div class="vctl"><button class="bArt" disabled>砲撃</button><button class="bGas" disabled>毒ガス弾</button><button class="bChg" disabled>突撃</button><button class="bDug" hidden disabled>地下壕から上げる</button><button class="bMG" disabled>機関銃を置く</button><button class="bMask" disabled>ガスマスクを着ける</button><button class="bAll">全部隊を選ぶ</button><button class="bRef" disabled>補充</button><button class="bEnd">遊ばずに、結果だけ見る</button><button class="bHelp">説明</button><label class="vblood"><input type="checkbox" class="cBlood"> 流血の表現</label><span class="vsel"></span></div>`;
   cv=$('.vcv');const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');if(!ter0)buildTerrain();fresh();
   // 砲弾の穴の絵（VART.craters）があれば、読みこめたときに、地形の絵を作りなおす
