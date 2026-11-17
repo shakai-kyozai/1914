@@ -1628,6 +1628,18 @@ function tour(i,done,onlyNew){if(onlyNew!==undefined)tour.only=onlyNew;const L=(
 // ガスマスクの小さな絵（部隊の帯のとなりに出す）
 function maskIcon(g,x,y,on){g.save();g.translate(x,y);g.globalAlpha=on?1:.55;g.fillStyle='#2b2f24';g.strokeStyle='#dfe6b0';g.lineWidth=1;g.beginPath();g.ellipse(0,0,4.6,5.2,0,0,6.283);g.fill();g.stroke();g.fillStyle='#dfe6b0';g.beginPath();g.arc(-1.9,-1.2,1.3,0,6.283);g.arc(1.9,-1.2,1.3,0,6.283);g.fill();g.fillStyle='#8f9a55';g.strokeStyle='#dfe6b0';g.beginPath();g.rect(-1.7,2,3.4,3.6);g.fill();g.stroke();g.restore();}
 // 砲弾のあと・つぶれた火点を、地形の絵に重ねる
+let dustC=[],dustSp=null;
+function mkDust(){const L=[];for(const col of [[118,102,82],[196,190,176],[226,222,212]]){const c=document.createElement('canvas');c.width=c.height=96;const q=c.getContext('2d');
+    for(let i=0;i<14;i++){const a=Math.random()*6.283,r=Math.random()*20,x=48+Math.cos(a)*r,y=48+Math.sin(a)*r,s=16+Math.random()*16,gr=q.createRadialGradient(x,y,0,x,y,s);
+      gr.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},.55)`);gr.addColorStop(1,`rgba(${col[0]},${col[1]},${col[2]},0)`);q.fillStyle=gr;q.beginPath();q.arc(x,y,s,0,6.283);q.fill();}L.push(c);}return L;}
+function addDust(x,y,k){if(!dustSp)dustSp=mkDust();const sc=k*(.8+.5*UZ),P=[];
+  for(let i=0;i<20;i++){const f=Math.pow(Math.random(),.7);P.push({ox:(Math.random()*2-1)*10*sc,h:(30+f*120)*sc,r0:(7+Math.random()*8)*sc*(.7+f*.7),dl:Math.random()*.5+f*.6,sp:f>.55?2:f>.25?1:0,gr:.18+Math.random()*.14,dr:(Math.random()*2-1)*3});}
+  for(let i=0;i<10;i++){const a=Math.random()*6.283;P.push({ox:0,h:0,r0:(8+Math.random()*6)*sc,dl:.05+Math.random()*.3,sp:0,gr:.2,dr:0,vx:Math.cos(a)*40*sc,vy:Math.sin(a)*55*sc*VW.sy});}
+  dustC.push({x,y,t:0,P});}
+function drawDust(g,dt){for(const D of dustC){D.t+=dt;const p=PX(D.x,D.y);for(const q of D.P){const t=D.t-q.dl;if(t<=0)continue;
+    const rise=q.h*(1-Math.exp(-t/1.1)),drift=(6+q.dr)*t,surge=q.vx!==undefined?1-Math.exp(-t/1.2):0,x=p[0]+q.ox+drift+(q.vx||0)*surge,y=p[1]-rise+(q.vy||0)*surge,
+      r=q.r0*(1+Math.min(t,9)*q.gr)*(1+rise/(q.h||1)*.3),a=Math.min(1,t/.25)*Math.exp(-t/6.5)*.85;if(a<.01)continue;g.globalAlpha=a;g.drawImage(dustSp[q.sp],x-r,y-r,2*r,2*r);}}
+  g.globalAlpha=1;dustC=dustC.filter(D=>D.t<24);}
 let crIm=null;if(window.VCRATER){crIm=new Image();crIm.src=VCRATER.src;}
 function mineCrater(x,y,r){if(crIm&&crIm.complete&&crIm.naturalWidth){const g=ter.getContext('2d'),p=PX(x,y),w=r*7,h=w*crIm.naturalHeight/crIm.naturalWidth;g.setTransform(TS,0,0,TS,0,0);g.drawImage(crIm,p[0]-w/2,p[1]-h*.52,w,h);return;}
   const g=ter.getContext('2d'),p=PX(x,y);g.setTransform(TS,0,0,TS,0,0);g.save();g.translate(p[0],p[1]);g.scale(1,VW.sy*.9);
@@ -1827,7 +1839,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   // 砲撃のはじまり：大砲を撃つ音。ドイツ軍の砲は近く、フランス軍の砲は遠くで鳴る
   for(const b of S.barr)if(b.isNew){b.isNew=false;snd(b.gun?'cannon':b.side==='g'?'fire':'far');}
   // 砲弾が落ちる：音、地面のあと、画面のゆれ、爆発の効果
-  for(const f of S.fx){const p=PX(f.x,f.y);if(f.t===0&&f.mine){const k=2.8+f.mine*1.6;snd('bigboom',1);snd('boom',.6);mineCrater(f.x,f.y,(f.cr||5)*2.4);shake=Math.max(shake,1.2+f.mine*.4);if(vfx){const B=vfx.blast?vfx.blast.bind(vfx):(a,b,c)=>vfx.boom(a,b,c,'f');B(p[0],p[1],k);for(let i=0;i<4;i++){const a=Math.random()*6.283,r=(4+Math.random()*10)*f.mine;B(p[0]+Math.cos(a)*r,p[1]+Math.sin(a)*r*.6,k*.55);}}}
+  drawDust(g,dt);for(const f of S.fx){const p=PX(f.x,f.y);if(f.t===0&&f.mine){const k=2.8+f.mine*1.6;addDust(f.x,f.y,f.mine);snd('bigboom',1);snd('boom',.6);mineCrater(f.x,f.y,(f.cr||5)*2.4);shake=Math.max(shake,1.2+f.mine*.4);if(vfx){const B=vfx.blast?vfx.blast.bind(vfx):(a,b,c)=>vfx.boom(a,b,c,'f');B(p[0],p[1],k);for(let i=0;i<4;i++){const a=Math.random()*6.283,r=(4+Math.random()*10)*f.mine;B(p[0]+Math.cos(a)*r,p[1]+Math.sin(a)*r*.6,k*.55);}}}
     else if(f.t===0){const k=f.big?2.8:f.small?.55:.85+Math.random()*.6;snd('boom',.13);if(!f.small)snd('bigboom',.7);scar(f.x,f.y,((f.small?5:7)+k*5)*(.3+.7*UZ));shake=Math.max(shake,f.big?.8:f.small?.12:.26);if(vfx)vfx.boom(p[0],p[1],k,f.side);}
     if(f.mine){const q=f.t/3.2,sc=f.mine*(.8+.5*UZ);
       if(f.t<.3){g.fillStyle=`rgba(255,248,230,${(.45*(1-f.t/.3)).toFixed(2)})`;g.fillRect(-4000,-4000,9000,9000);}
@@ -1963,7 +1975,7 @@ function showBrief(next){brief=makeBrief();const T=VD.text.brief||{},EN2=EN;cons
   w.innerHTML=`<p class="vbt">${EN_?'Operations map':'作戦図'}</p><p>${txt}</p><div class="vbl">${brief.arrows.some(a=>a.side==='f'&&!a.tank)?`<span><i class="r"></i>${EN_?'enemy advance':'敵の予想進路'}</span>`:''}${brief.arrows.some(a=>a.side==='g')?`<span><i class="g"></i>${EN_?'our attack':'味方の攻撃の方向'}</span>`:''}${brief.arrows.some(a=>a.tank)?`<span><i class="r d"></i>${EN_?'new weapon':'新しい兵器'}</span>`:''}${brief.zones.length?`<span><i class="y"></i>${EN_?'our sectors':'味方の受け持ち'}</span>`:''}<span><i class="o"></i>${EN_?'objective':'目標'}</span></div><button class="main">${EN_?'Understood — start the battle':'作戦を確かめた（戦いを始める）'}</button>`;
   {const A=brief.arrows.filter(a=>a.side==='f');const ay=A.length?A.reduce((t,a)=>t+PX(a.a[0],a.a[1])[1],0)/A.length:0;if(S.mode==='def'&&ay>SH*.45)w.classList.add('top');}   // 敵が下から来るときは、説明を地図の上にかさねて、矢印をかくさない
   cv.parentNode.appendChild(w);rb(w);w.querySelector('button').onclick=()=>{w.remove();brief.on=false;brief.t=0;tourOn=false;last=performance.now();next();};}
-function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
+function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];dustC=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
   const doTour=()=>{if(!tourSeen[O.mode]&&(VD.text.tour||[]).length&&!O.noTour){tourOn=true;setTimeout(()=>{tour(0,go,!!VD.text.tourNewOnly);},250);}else go();};
   if(!O.noBrief){tourOn=true;setTimeout(()=>{root.scrollIntoView({block:'nearest'});showBrief(doTour);},300);}else doTour();}
 function start(el,opt){root=el;O=Object.assign({mode:'atk',units:7,shots:6,enemy:1},opt);loadImgs();
@@ -2438,6 +2450,18 @@ function tour(i,done,onlyNew){if(onlyNew!==undefined)tour.only=onlyNew;const L=(
 // ガスマスクの小さな絵（部隊の帯のとなりに出す）
 function maskIcon(g,x,y,on){g.save();g.translate(x,y);g.globalAlpha=on?1:.55;g.fillStyle='#2b2f24';g.strokeStyle='#dfe6b0';g.lineWidth=1;g.beginPath();g.ellipse(0,0,4.6,5.2,0,0,6.283);g.fill();g.stroke();g.fillStyle='#dfe6b0';g.beginPath();g.arc(-1.9,-1.2,1.3,0,6.283);g.arc(1.9,-1.2,1.3,0,6.283);g.fill();g.fillStyle='#8f9a55';g.strokeStyle='#dfe6b0';g.beginPath();g.rect(-1.7,2,3.4,3.6);g.fill();g.stroke();g.restore();}
 // 砲弾のあと・つぶれた火点を、地形の絵に重ねる
+let dustC=[],dustSp=null;
+function mkDust(){const L=[];for(const col of [[118,102,82],[196,190,176],[226,222,212]]){const c=document.createElement('canvas');c.width=c.height=96;const q=c.getContext('2d');
+    for(let i=0;i<14;i++){const a=Math.random()*6.283,r=Math.random()*20,x=48+Math.cos(a)*r,y=48+Math.sin(a)*r,s=16+Math.random()*16,gr=q.createRadialGradient(x,y,0,x,y,s);
+      gr.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},.55)`);gr.addColorStop(1,`rgba(${col[0]},${col[1]},${col[2]},0)`);q.fillStyle=gr;q.beginPath();q.arc(x,y,s,0,6.283);q.fill();}L.push(c);}return L;}
+function addDust(x,y,k){if(!dustSp)dustSp=mkDust();const sc=k*(.8+.5*UZ),P=[];
+  for(let i=0;i<20;i++){const f=Math.pow(Math.random(),.7);P.push({ox:(Math.random()*2-1)*10*sc,h:(30+f*120)*sc,r0:(7+Math.random()*8)*sc*(.7+f*.7),dl:Math.random()*.5+f*.6,sp:f>.55?2:f>.25?1:0,gr:.18+Math.random()*.14,dr:(Math.random()*2-1)*3});}
+  for(let i=0;i<10;i++){const a=Math.random()*6.283;P.push({ox:0,h:0,r0:(8+Math.random()*6)*sc,dl:.05+Math.random()*.3,sp:0,gr:.2,dr:0,vx:Math.cos(a)*40*sc,vy:Math.sin(a)*55*sc*VW.sy});}
+  dustC.push({x,y,t:0,P});}
+function drawDust(g,dt){for(const D of dustC){D.t+=dt;const p=PX(D.x,D.y);for(const q of D.P){const t=D.t-q.dl;if(t<=0)continue;
+    const rise=q.h*(1-Math.exp(-t/1.1)),drift=(6+q.dr)*t,surge=q.vx!==undefined?1-Math.exp(-t/1.2):0,x=p[0]+q.ox+drift+(q.vx||0)*surge,y=p[1]-rise+(q.vy||0)*surge,
+      r=q.r0*(1+Math.min(t,9)*q.gr)*(1+rise/(q.h||1)*.3),a=Math.min(1,t/.25)*Math.exp(-t/6.5)*.85;if(a<.01)continue;g.globalAlpha=a;g.drawImage(dustSp[q.sp],x-r,y-r,2*r,2*r);}}
+  g.globalAlpha=1;dustC=dustC.filter(D=>D.t<24);}
 let crIm=null;if(window.VCRATER){crIm=new Image();crIm.src=VCRATER.src;}
 function mineCrater(x,y,r){if(crIm&&crIm.complete&&crIm.naturalWidth){const g=ter.getContext('2d'),p=PX(x,y),w=r*7,h=w*crIm.naturalHeight/crIm.naturalWidth;g.setTransform(TS,0,0,TS,0,0);g.drawImage(crIm,p[0]-w/2,p[1]-h*.52,w,h);return;}
   const g=ter.getContext('2d'),p=PX(x,y);g.setTransform(TS,0,0,TS,0,0);g.save();g.translate(p[0],p[1]);g.scale(1,VW.sy*.9);
@@ -2637,7 +2661,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   // 砲撃のはじまり：大砲を撃つ音。ドイツ軍の砲は近く、フランス軍の砲は遠くで鳴る
   for(const b of S.barr)if(b.isNew){b.isNew=false;snd(b.gun?'cannon':b.side==='g'?'fire':'far');}
   // 砲弾が落ちる：音、地面のあと、画面のゆれ、爆発の効果
-  for(const f of S.fx){const p=PX(f.x,f.y);if(f.t===0&&f.mine){const k=2.8+f.mine*1.6;snd('bigboom',1);snd('boom',.6);mineCrater(f.x,f.y,(f.cr||5)*2.4);shake=Math.max(shake,1.2+f.mine*.4);if(vfx){const B=vfx.blast?vfx.blast.bind(vfx):(a,b,c)=>vfx.boom(a,b,c,'f');B(p[0],p[1],k);for(let i=0;i<4;i++){const a=Math.random()*6.283,r=(4+Math.random()*10)*f.mine;B(p[0]+Math.cos(a)*r,p[1]+Math.sin(a)*r*.6,k*.55);}}}
+  drawDust(g,dt);for(const f of S.fx){const p=PX(f.x,f.y);if(f.t===0&&f.mine){const k=2.8+f.mine*1.6;addDust(f.x,f.y,f.mine);snd('bigboom',1);snd('boom',.6);mineCrater(f.x,f.y,(f.cr||5)*2.4);shake=Math.max(shake,1.2+f.mine*.4);if(vfx){const B=vfx.blast?vfx.blast.bind(vfx):(a,b,c)=>vfx.boom(a,b,c,'f');B(p[0],p[1],k);for(let i=0;i<4;i++){const a=Math.random()*6.283,r=(4+Math.random()*10)*f.mine;B(p[0]+Math.cos(a)*r,p[1]+Math.sin(a)*r*.6,k*.55);}}}
     else if(f.t===0){const k=f.big?2.8:f.small?.55:.85+Math.random()*.6;snd('boom',.13);if(!f.small)snd('bigboom',.7);scar(f.x,f.y,((f.small?5:7)+k*5)*(.3+.7*UZ));shake=Math.max(shake,f.big?.8:f.small?.12:.26);if(vfx)vfx.boom(p[0],p[1],k,f.side);}
     if(f.mine){const q=f.t/3.2,sc=f.mine*(.8+.5*UZ);
       if(f.t<.3){g.fillStyle=`rgba(255,248,230,${(.45*(1-f.t/.3)).toFixed(2)})`;g.fillRect(-4000,-4000,9000,9000);}
@@ -2773,7 +2797,7 @@ function showBrief(next){brief=makeBrief();const T=VD.text.brief||{},EN2=EN;cons
   w.innerHTML=`<p class="vbt">${EN_?'Operations map':'作戦図'}</p><p>${txt}</p><div class="vbl">${brief.arrows.some(a=>a.side==='f'&&!a.tank)?`<span><i class="r"></i>${EN_?'enemy advance':'敵の予想進路'}</span>`:''}${brief.arrows.some(a=>a.side==='g')?`<span><i class="g"></i>${EN_?'our attack':'味方の攻撃の方向'}</span>`:''}${brief.arrows.some(a=>a.tank)?`<span><i class="r d"></i>${EN_?'new weapon':'新しい兵器'}</span>`:''}${brief.zones.length?`<span><i class="y"></i>${EN_?'our sectors':'味方の受け持ち'}</span>`:''}<span><i class="o"></i>${EN_?'objective':'目標'}</span></div><button class="main">${EN_?'Understood — start the battle':'作戦を確かめた（戦いを始める）'}</button>`;
   {const A=brief.arrows.filter(a=>a.side==='f');const ay=A.length?A.reduce((t,a)=>t+PX(a.a[0],a.a[1])[1],0)/A.length:0;if(S.mode==='def'&&ay>SH*.45)w.classList.add('top');}   // 敵が下から来るときは、説明を地図の上にかさねて、矢印をかくさない
   cv.parentNode.appendChild(w);rb(w);w.querySelector('button').onclick=()=>{w.remove();brief.on=false;brief.t=0;tourOn=false;last=performance.now();next();};}
-function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
+function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];dustC=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
   const doTour=()=>{if(!tourSeen[O.mode]&&(VD.text.tour||[]).length&&!O.noTour){tourOn=true;setTimeout(()=>{tour(0,go,!!VD.text.tourNewOnly);},250);}else go();};
   if(!O.noBrief){tourOn=true;setTimeout(()=>{root.scrollIntoView({block:'nearest'});showBrief(doTour);},300);}else doTour();}
 function start(el,opt){root=el;O=Object.assign({mode:'atk',units:7,shots:6,enemy:1},opt);loadImgs();
