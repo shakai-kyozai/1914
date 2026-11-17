@@ -1498,7 +1498,7 @@ function face(u,dt){if(u.fa===undefined)u.fa=u.side==='g'?Math.PI/2:-Math.PI/2;}
 // 横隊の列の数：人数が少ない部隊は、列をへらして、横に長い形をたもつ
 const rk=n=>n>70?4:n>36?3:2,UZ=VD.u||1;
 // 部隊の広がり（横の半分 hw、前後の半分 hd）。横隊のときと、塹壕に沿って広がったときで変わる
-function size(u){const F=VD.form,n=u.figs?u.figs.length:VD.figs;if(u.mg)return [13*UZ,10*UZ];if(u.tank)return [12,8];if(u.state==='rout'||u.melee)return [VD.spread[0],VD.spread[1]];
+function size(u){const F=VD.form,n=u.figs?u.figs.length:VD.figs;if(u.mg)return [13*UZ,10*UZ];if(u.tank)return [12,8];if(u.state==='rout'||u.melee||u.mlHold>0)return [VD.spread[0],VD.spread[1]];
   if(u.dep)return [VSim.depLen(u)/2+2,9*UZ];const R=rk(n),files=Math.min(F.files,Math.ceil(n/R)),ranks=n<=R*F.files?Math.min(R,n):R+Math.ceil((n-R*F.files)/F.files);return [files*F.gapA/2+3,ranks*F.gapD/2+3];}
 // 兵士の絵を、兵力に合わせて用意し、1人ずつの立つ場所を決める。
 //   ふつうは横隊（2〜4列）。塹壕の中では、塹壕の線に沿って細長く並ぶ。退くときは、ばらばらになる。
@@ -1508,13 +1508,13 @@ function syncFigs(u,dt){const want=Math.max(1,Math.round(u.men/VD.unitMen*VD.fig
   while(L.length>want){const j=Math.floor(Math.random()*L.length),f=L[j],bp=PX(f.x,f.y);bodies.push({x:bp[0],y:bp[1],k:u.side==='g'?'g':'fr',t:0});bleed(f.x,f.y);const last=L.pop();if(j<L.length)L[j]=last;}
   face(u,dt);const n=L.length,ca=Math.cos(u.fa),sa=Math.sin(u.fa);
   if(u.state==='rout'){for(const f of L){f.ox=f.sx;f.oy=f.sy;}}
-  else if(u.melee){const v=S.units.find(q=>q.id===u.melee),mx=v?(v.x-u.x)*.42:0,my=v?(v.y-u.y)*.42:0;for(const f of L){f.ox=f.sx*.7+mx;f.oy=f.sy*.7+my;}}   // 白兵戦：相手のほうへ入りまじる
+  else if(u.melee||u.mlHold>0){const v=S.units.find(q=>q.id===(u.melee||u.mlFoe)),mx=v?(v.x-u.x)*.42:0,my=v?(v.y-u.y)*.42:0;for(const f of L){f.ox=f.sx*.7+mx;f.oy=f.sy*.7+my;}}   // 白兵戦：相手のほうへ入りまじる
   else if(u.dep){const R=F.trRanks,files=Math.ceil(n/R),gap=VSim.depLen(u)/Math.max(1,files),TL=VSim.trenchLen(u.dep.i);
     for(let k=0;k<n;k++){const f=L[k],r=k%R,c=(k/R)|0,fo=(c%2?(c+1)/2:-c/2)*gap,p=VSim.trenchPt(u.dep.i,Math.max(0,Math.min(TL,u.dep.s+fo))),d=(1.5-r*2.6)*UZ;f.ox=p[0]+ca*d+f.jx*.5-u.x;f.oy=p[1]+sa*d+f.jy*.5-u.y;}}
   else{const W=F.files,R=rk(n);for(let k=0;k<n;k++){const f=L[k];let r,c;if(k<R*W){r=k%R;c=(k/R)|0;}else{const q=k-R*W;r=R+((q/W)|0);c=q%W;}
       const fo=(c%2?(c+1)/2:-c/2)*F.gapA+f.jx,d=((R-1)/2-r)*F.gapD+f.jy;f.ox=-sa*fo+ca*d;f.oy=ca*fo+sa*d;}}
   // 奥の兵士から先に描くための順番（向きや人数が変わったときだけ、ならべなおす）
-  const key=(u.state==='rout'?'r':u.melee?'m':u.dep?'d':'l')+Math.round(u.fa*6)+'|'+n;if(key!==u._k||!u.ord||u.ord.length!==n){u._k=key;u.ord=L.slice().sort((a,b)=>a.oy-b.oy);}}
+  const key=(u.state==='rout'?'r':(u.melee||u.mlHold>0)?'m':u.dep?'d':'l')+Math.round(u.fa*6)+'|'+n;if(key!==u._k||!u.ord||u.ord.length!==n){u._k=key;u.ord=L.slice().sort((a,b)=>a.oy-b.oy);}}
 // こまかい模様（群雄割拠の立体地図と同じ作り方）：R＝土のざらつき、G＝木のこずえのかたまり、B＝田畑の区画のまだら。くり返して使う
 function detail(N){const f=new Float32Array(N*N),k=new Float32Array(N*N),p=new Float32Array(N*N);let sd=12345;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
   const grid=n=>{const g=new Float32Array(n*n);for(let i=0;i<n*n;i++)g[i]=rnd();return g;};
@@ -1626,7 +1626,11 @@ function buildTerrain(){const W=VD.W,H=VD.H,T=VD.tex;TS=VD.tex.res||1.5;const w=
   for(const f of F)if(f[4]){const p=PX(f[0],f[1]);label(f[4],p[0],p[1]+4,'#cfe0bf',10);}
   if(vilIm&&VD.villageStyle){const V=VART.village,st=VD.villageStyle,L=[];let sd=2718;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
     const put=(nm,x,y,sz)=>L.push([nm,x,y,sz,(rnd()*4)|0]);
-    for(const [nm,mx,my,k] of VD.places){if(k!=='vil'&&k!=='town')continue;if(mx<-20||mx>W+20||my<-20||my>H+20)continue;const z=aZ[((Math.max(0,Math.min(H-1,my))*TS)|0)*w+((Math.max(0,Math.min(W-1,mx))*TS)|0)]/255,big=k==='town'?1.6:1;
+    for(const [nm,mx,my,k] of VD.places){if(k!=='vil'&&k!=='town')continue;if(mx<-20||mx>W+20||my<-20||my>H+20)continue;const z=aZ[((Math.max(0,Math.min(H-1,my))*TS)|0)*w+((Math.max(0,Math.min(W-1,mx))*TS)|0)]/255,big=k==='town'?1.25:1;
+      if(k==='town'&&z<=.3){   // 町：1つずつの建物を、通りに沿うように不規則に並べる（同じ形のくり返しにならないようにする）
+        const one=st==='marne'?'farmstead_marne':st==='lorraine'?'row_lorraine':'farm_picardy',ch=st==='somme'?'church_somme':'church_marne',n=12+((rnd()*5)|0);
+        for(let s2=0;s2<3;s2++){const a0=rnd()*6.283;let x=mx,y=my;for(let i=0;i<n/3;i++){const a=a0+(rnd()*2-1)*.5;x+=Math.cos(a)*(4+rnd()*3);y+=Math.sin(a)*(4+rnd()*3);put(one,x+(rnd()*2-1)*2,y+(rnd()*2-1)*2,.24+rnd()*.06);}}
+        put(ch,mx,my-2,.32);continue;}
       if(z>.3){const n=3+((rnd()*3)|0);for(let i=0;i<n;i++){const a=rnd()*6.283,r=rnd()*9*big;put('ruin'+(1+((rnd()*3)|0)),mx+Math.cos(a)*r,my+Math.sin(a)*r,.42*big);}}
       else if(st==='marne'){put('farmstead_marne',mx-6,my-2,.55*big);put('church_marne',mx+7,my-3,.42*big);put('farmstead_marne',mx+1,my+7,.45*big);}
       else if(st==='lorraine'){put(rnd()<.5?'vil_lorraine1':'vil_lorraine2',mx,my,.95*big);}
@@ -1840,7 +1844,7 @@ function drawTank(u,dt){const g=ctx,T=window.VART&&VART.tank,hv=hover===u.id,[px
 function crewPts(u){if(u.broke||u.men<=0)return [];const big=u.gun||u.bat,O=big?[[-12,-8],[-12,8],[-17,-3],[-18,5],[-6,-11]]:[[-6,-5],[-7,5],[-10,0]],n=Math.max(1,Math.round(O.length*Math.min(1,u.men/VD.mg.men))),a=u.fa||0,c=Math.cos(a),s=Math.sin(a),k=(.7+.5*UZ);
   return O.slice(0,n).map(([f,l],i)=>{const x=u.x+(c*f-s*l)*k,y=u.y+(s*f+c*l)*k,p=PX(x,y);return [p[0],p[1],i];});}
 function drawCrew(u,C,front){const [,py]=PX(u.x,u.y),k=u.side==='g'?'g':'fr';for(const [x,y,i] of C){if((y>=py)!==front)continue;fig(ctx,k,0,x,y);}}
-function drawUnit(u,dt){if(u.mg){const B=!!u.gun&&!u.broke,C=crewPts(u);if(B)bagRing(u,false);drawCrew(u,C,false);const r=drawMG(u,dt);drawCrew(u,C,true);if(B)bagRing(u,true);return r;}if(u.tank)return drawTank(u,dt);if(u.dug)return drawDug(u);const g=ctx,k=u.side==='g'?'g':'fr',im=imgs[k],on=sel.has(u.id),hv=hover===u.id,rt=u.state==='rout',ml=!!u.melee&&!rt,s=VD.figSize,gs=u.side==='g';syncFigs(u,dt);const [hw,hd]=size(u),[px,py]=PX(u.x,u.y);
+function drawUnit(u,dt){if(u.mg){const B=!!u.gun&&!u.broke,C=crewPts(u);if(B)bagRing(u,false);drawCrew(u,C,false);const r=drawMG(u,dt);drawCrew(u,C,true);if(B)bagRing(u,true);return r;}if(u.tank)return drawTank(u,dt);if(u.dug)return drawDug(u);const g=ctx,k=u.side==='g'?'g':'fr',im=imgs[k],on=sel.has(u.id),hv=hover===u.id,rt=u.state==='rout',ml=((u.mlFoe=u.melee||u.mlFoe),(u.mlHold=u.melee?.9:Math.max(0,(u.mlHold||0)-dt))>0)&&!rt,s=VD.figSize,gs=u.side==='g';syncFigs(u,dt);const [hw,hd]=size(u),[px,py]=PX(u.x,u.y);
   const fill=ml?'rgba(226,89,75,.26)':on?'rgba(255,214,90,.3)':hv?'rgba(255,255,255,.26)':gs?'rgba(232,195,79,.16)':'rgba(109,143,210,.2)',line=ml?'#e2594b':on?'#ffd65a':hv?'#ffffff':gs?'rgba(232,195,79,.55)':'rgba(140,170,235,.6)',lw=on?1.8:hv?1.6:.8;
   const shape=(pad)=>{g.beginPath();if(rt||ml)g.ellipse(px,py,hw+pad,(hd+pad)*VW.sy,0,0,6.283);
     else if(u.dep){const L=VSim.depLen(u),TL=VSim.trenchLen(u.dep.i),a=Math.max(0,u.dep.s-L/2),b=Math.min(TL,u.dep.s+L/2);for(let q=a;;q+=8){const t=VSim.trenchPt(u.dep.i,Math.min(q,b)),p=PX(t[0],t[1]);q===a?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1]);if(q>=b)break;}}
@@ -2363,7 +2367,7 @@ function face(u,dt){if(u.fa===undefined)u.fa=u.side==='g'?Math.PI/2:-Math.PI/2;}
 // 横隊の列の数：人数が少ない部隊は、列をへらして、横に長い形をたもつ
 const rk=n=>n>70?4:n>36?3:2,UZ=VD.u||1;
 // 部隊の広がり（横の半分 hw、前後の半分 hd）。横隊のときと、塹壕に沿って広がったときで変わる
-function size(u){const F=VD.form,n=u.figs?u.figs.length:VD.figs;if(u.mg)return [13*UZ,10*UZ];if(u.tank)return [12,8];if(u.state==='rout'||u.melee)return [VD.spread[0],VD.spread[1]];
+function size(u){const F=VD.form,n=u.figs?u.figs.length:VD.figs;if(u.mg)return [13*UZ,10*UZ];if(u.tank)return [12,8];if(u.state==='rout'||u.melee||u.mlHold>0)return [VD.spread[0],VD.spread[1]];
   if(u.dep)return [VSim.depLen(u)/2+2,9*UZ];const R=rk(n),files=Math.min(F.files,Math.ceil(n/R)),ranks=n<=R*F.files?Math.min(R,n):R+Math.ceil((n-R*F.files)/F.files);return [files*F.gapA/2+3,ranks*F.gapD/2+3];}
 // 兵士の絵を、兵力に合わせて用意し、1人ずつの立つ場所を決める。
 //   ふつうは横隊（2〜4列）。塹壕の中では、塹壕の線に沿って細長く並ぶ。退くときは、ばらばらになる。
@@ -2373,13 +2377,13 @@ function syncFigs(u,dt){const want=Math.max(1,Math.round(u.men/VD.unitMen*VD.fig
   while(L.length>want){const j=Math.floor(Math.random()*L.length),f=L[j],bp=PX(f.x,f.y);bodies.push({x:bp[0],y:bp[1],k:u.side==='g'?'g':'fr',t:0});bleed(f.x,f.y);const last=L.pop();if(j<L.length)L[j]=last;}
   face(u,dt);const n=L.length,ca=Math.cos(u.fa),sa=Math.sin(u.fa);
   if(u.state==='rout'){for(const f of L){f.ox=f.sx;f.oy=f.sy;}}
-  else if(u.melee){const v=S.units.find(q=>q.id===u.melee),mx=v?(v.x-u.x)*.42:0,my=v?(v.y-u.y)*.42:0;for(const f of L){f.ox=f.sx*.7+mx;f.oy=f.sy*.7+my;}}   // 白兵戦：相手のほうへ入りまじる
+  else if(u.melee||u.mlHold>0){const v=S.units.find(q=>q.id===(u.melee||u.mlFoe)),mx=v?(v.x-u.x)*.42:0,my=v?(v.y-u.y)*.42:0;for(const f of L){f.ox=f.sx*.7+mx;f.oy=f.sy*.7+my;}}   // 白兵戦：相手のほうへ入りまじる
   else if(u.dep){const R=F.trRanks,files=Math.ceil(n/R),gap=VSim.depLen(u)/Math.max(1,files),TL=VSim.trenchLen(u.dep.i);
     for(let k=0;k<n;k++){const f=L[k],r=k%R,c=(k/R)|0,fo=(c%2?(c+1)/2:-c/2)*gap,p=VSim.trenchPt(u.dep.i,Math.max(0,Math.min(TL,u.dep.s+fo))),d=(1.5-r*2.6)*UZ;f.ox=p[0]+ca*d+f.jx*.5-u.x;f.oy=p[1]+sa*d+f.jy*.5-u.y;}}
   else{const W=F.files,R=rk(n);for(let k=0;k<n;k++){const f=L[k];let r,c;if(k<R*W){r=k%R;c=(k/R)|0;}else{const q=k-R*W;r=R+((q/W)|0);c=q%W;}
       const fo=(c%2?(c+1)/2:-c/2)*F.gapA+f.jx,d=((R-1)/2-r)*F.gapD+f.jy;f.ox=-sa*fo+ca*d;f.oy=ca*fo+sa*d;}}
   // 奥の兵士から先に描くための順番（向きや人数が変わったときだけ、ならべなおす）
-  const key=(u.state==='rout'?'r':u.melee?'m':u.dep?'d':'l')+Math.round(u.fa*6)+'|'+n;if(key!==u._k||!u.ord||u.ord.length!==n){u._k=key;u.ord=L.slice().sort((a,b)=>a.oy-b.oy);}}
+  const key=(u.state==='rout'?'r':(u.melee||u.mlHold>0)?'m':u.dep?'d':'l')+Math.round(u.fa*6)+'|'+n;if(key!==u._k||!u.ord||u.ord.length!==n){u._k=key;u.ord=L.slice().sort((a,b)=>a.oy-b.oy);}}
 // こまかい模様（群雄割拠の立体地図と同じ作り方）：R＝土のざらつき、G＝木のこずえのかたまり、B＝田畑の区画のまだら。くり返して使う
 function detail(N){const f=new Float32Array(N*N),k=new Float32Array(N*N),p=new Float32Array(N*N);let sd=12345;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
   const grid=n=>{const g=new Float32Array(n*n);for(let i=0;i<n*n;i++)g[i]=rnd();return g;};
@@ -2491,7 +2495,11 @@ function buildTerrain(){const W=VD.W,H=VD.H,T=VD.tex;TS=VD.tex.res||1.5;const w=
   for(const f of F)if(f[4]){const p=PX(f[0],f[1]);label(f[4],p[0],p[1]+4,'#cfe0bf',10);}
   if(vilIm&&VD.villageStyle){const V=VART.village,st=VD.villageStyle,L=[];let sd=2718;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
     const put=(nm,x,y,sz)=>L.push([nm,x,y,sz,(rnd()*4)|0]);
-    for(const [nm,mx,my,k] of VD.places){if(k!=='vil'&&k!=='town')continue;if(mx<-20||mx>W+20||my<-20||my>H+20)continue;const z=aZ[((Math.max(0,Math.min(H-1,my))*TS)|0)*w+((Math.max(0,Math.min(W-1,mx))*TS)|0)]/255,big=k==='town'?1.6:1;
+    for(const [nm,mx,my,k] of VD.places){if(k!=='vil'&&k!=='town')continue;if(mx<-20||mx>W+20||my<-20||my>H+20)continue;const z=aZ[((Math.max(0,Math.min(H-1,my))*TS)|0)*w+((Math.max(0,Math.min(W-1,mx))*TS)|0)]/255,big=k==='town'?1.25:1;
+      if(k==='town'&&z<=.3){   // 町：1つずつの建物を、通りに沿うように不規則に並べる（同じ形のくり返しにならないようにする）
+        const one=st==='marne'?'farmstead_marne':st==='lorraine'?'row_lorraine':'farm_picardy',ch=st==='somme'?'church_somme':'church_marne',n=12+((rnd()*5)|0);
+        for(let s2=0;s2<3;s2++){const a0=rnd()*6.283;let x=mx,y=my;for(let i=0;i<n/3;i++){const a=a0+(rnd()*2-1)*.5;x+=Math.cos(a)*(4+rnd()*3);y+=Math.sin(a)*(4+rnd()*3);put(one,x+(rnd()*2-1)*2,y+(rnd()*2-1)*2,.24+rnd()*.06);}}
+        put(ch,mx,my-2,.32);continue;}
       if(z>.3){const n=3+((rnd()*3)|0);for(let i=0;i<n;i++){const a=rnd()*6.283,r=rnd()*9*big;put('ruin'+(1+((rnd()*3)|0)),mx+Math.cos(a)*r,my+Math.sin(a)*r,.42*big);}}
       else if(st==='marne'){put('farmstead_marne',mx-6,my-2,.55*big);put('church_marne',mx+7,my-3,.42*big);put('farmstead_marne',mx+1,my+7,.45*big);}
       else if(st==='lorraine'){put(rnd()<.5?'vil_lorraine1':'vil_lorraine2',mx,my,.95*big);}
@@ -2705,7 +2713,7 @@ function drawTank(u,dt){const g=ctx,T=window.VART&&VART.tank,hv=hover===u.id,[px
 function crewPts(u){if(u.broke||u.men<=0)return [];const big=u.gun||u.bat,O=big?[[-12,-8],[-12,8],[-17,-3],[-18,5],[-6,-11]]:[[-6,-5],[-7,5],[-10,0]],n=Math.max(1,Math.round(O.length*Math.min(1,u.men/VD.mg.men))),a=u.fa||0,c=Math.cos(a),s=Math.sin(a),k=(.7+.5*UZ);
   return O.slice(0,n).map(([f,l],i)=>{const x=u.x+(c*f-s*l)*k,y=u.y+(s*f+c*l)*k,p=PX(x,y);return [p[0],p[1],i];});}
 function drawCrew(u,C,front){const [,py]=PX(u.x,u.y),k=u.side==='g'?'g':'fr';for(const [x,y,i] of C){if((y>=py)!==front)continue;fig(ctx,k,0,x,y);}}
-function drawUnit(u,dt){if(u.mg){const B=!!u.gun&&!u.broke,C=crewPts(u);if(B)bagRing(u,false);drawCrew(u,C,false);const r=drawMG(u,dt);drawCrew(u,C,true);if(B)bagRing(u,true);return r;}if(u.tank)return drawTank(u,dt);if(u.dug)return drawDug(u);const g=ctx,k=u.side==='g'?'g':'fr',im=imgs[k],on=sel.has(u.id),hv=hover===u.id,rt=u.state==='rout',ml=!!u.melee&&!rt,s=VD.figSize,gs=u.side==='g';syncFigs(u,dt);const [hw,hd]=size(u),[px,py]=PX(u.x,u.y);
+function drawUnit(u,dt){if(u.mg){const B=!!u.gun&&!u.broke,C=crewPts(u);if(B)bagRing(u,false);drawCrew(u,C,false);const r=drawMG(u,dt);drawCrew(u,C,true);if(B)bagRing(u,true);return r;}if(u.tank)return drawTank(u,dt);if(u.dug)return drawDug(u);const g=ctx,k=u.side==='g'?'g':'fr',im=imgs[k],on=sel.has(u.id),hv=hover===u.id,rt=u.state==='rout',ml=((u.mlFoe=u.melee||u.mlFoe),(u.mlHold=u.melee?.9:Math.max(0,(u.mlHold||0)-dt))>0)&&!rt,s=VD.figSize,gs=u.side==='g';syncFigs(u,dt);const [hw,hd]=size(u),[px,py]=PX(u.x,u.y);
   const fill=ml?'rgba(226,89,75,.26)':on?'rgba(255,214,90,.3)':hv?'rgba(255,255,255,.26)':gs?'rgba(232,195,79,.16)':'rgba(109,143,210,.2)',line=ml?'#e2594b':on?'#ffd65a':hv?'#ffffff':gs?'rgba(232,195,79,.55)':'rgba(140,170,235,.6)',lw=on?1.8:hv?1.6:.8;
   const shape=(pad)=>{g.beginPath();if(rt||ml)g.ellipse(px,py,hw+pad,(hd+pad)*VW.sy,0,0,6.283);
     else if(u.dep){const L=VSim.depLen(u),TL=VSim.trenchLen(u.dep.i),a=Math.max(0,u.dep.s-L/2),b=Math.min(TL,u.dep.s+L/2);for(let q=a;;q+=8){const t=VSim.trenchPt(u.dep.i,Math.min(q,b)),p=PX(t[0],t[1]);q===a?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1]);if(q>=b)break;}}
