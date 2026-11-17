@@ -1204,19 +1204,19 @@ function make(mode,opt){const S={mode,t:0,units:[],barr:[],fx:[],cap:0,over:null
   S.gTot=0;S.add=(side,x,y,o)=>{const u=Object.assign({id:++S.id,side,x,y,tx:x,ty:y,fa:side==='g'?Math.PI/2:-Math.PI/2,men:VD.unitMen*(side==='f'?S.enemy:1),mor:100,q:1+(Math.random()*2-1)*VD.vary,routAt:VD.rout*(.7+Math.random()*.6),state:'idle',hit:9,fire:0,moving:false,post:null},o||{});S.units.push(u);if(!u.mg&&!u.tank){S.no=S.no||{g:0,f:0};u.no=++S.no[side];}if(side==='g'&&!u.mg)S.gTot+=u.men;return u;};
   const sc=mode==='atk'?VD.atk:VD.def,[x0,x1,gy]=sc.gStart,n=opt.units;S.goal=sc.goal.slice();
   const snap=(x,y,r)=>{const q=trenchAt(x,y);return q&&q.d<(r||VD.trench.snap)?[q.x,q.y]:[x,y];};   // 塹壕の近くに置く部隊は、塹壕の線の上に合わせる
-  if(sc.gPos)for(const [px0,py0,dug] of sc.gPos){const [x,y]=snap(px0,py0,VD.trench.snap*2.5);S.add('g',x,y,{home:[x,y],dug:!!dug&&!!VD.dug});}   // 場所を1つずつ決めて置く（dug＝地下壕の中から始まる）
+  if(sc.gPos)for(const [px0,py0,dug,nm] of sc.gPos){const [x,y]=snap(px0,py0,VD.trench.snap*2.5);S.add('g',x,y,{home:[x,y],dug:!!dug&&!!VD.dug,nm});}   // 場所を1つずつ決めて置く（dug＝地下壕の中から始まる）
   else for(let i=0;i<n;i++){const [x,y]=snap(x0+(x1-x0)*(n>1?i/(n-1):.5),gy,VD.trench.snap*2.5);S.add('g',x,y,{home:[x,y]});}   // はじめの位置は、少しはなれた塹壕にも合わせる
   // 機関銃の火点：動かない。兵力は少ないが、遠くまで強く撃つ
   for(const [x,y] of sc.mg||[])S.add(mode==='atk'?'f':'g',x,y,{mg:true,men:VD.mg.men,q:1,post:[x,y],setup:VD.prep&&mode==='def'?VD.prep.until+VD.mg.setup:0});   // 準備砲撃のある戦いでは、砲撃が止まるまで撃てない
-  if(mode==='atk'){for(const [x0,y0,k] of sc.fr){const [x,y]=k==='fort'?[x0,y0]:snap(x0,y0),u=S.add('f',x,y,{post:[x,y],garr:k==='fort'});if(u.garr)u.men*=VD.garrison;}for(const [t,L] of sc.reinf)for(const q of L)S.spawn.push({t:t+(Math.random()*2-1)*VD.jitter,x:q[0],y:q[1],to:[q[2],q[3]]});}
-  else for(const [t,L] of sc.waves)for(const q of L)S.spawn.push({t:t>0?t+(Math.random()*2-1)*VD.jitter:0,x:q[0],y:q[1],atk:true,gi:q[2]});
+  if(mode==='atk'){for(const [x0,y0,k,nm] of sc.fr){const [x,y]=k==='fort'?[x0,y0]:snap(x0,y0),u=S.add('f',x,y,{post:[x,y],garr:k==='fort',nm});if(u.garr)u.men*=VD.garrison;}for(const [t,L] of sc.reinf)for(const q of L)S.spawn.push({t:t+(Math.random()*2-1)*VD.jitter,x:q[0],y:q[1],to:[q[2],q[3]],nm:q[4]});}
+  else for(const [t,L] of sc.waves)for(const q of L)S.spawn.push({t:t>0?t+(Math.random()*2-1)*VD.jitter:0,x:q[0],y:q[1],atk:true,gi:q[2],nm:q[3]});
   if(sc.tanks&&VD.tank)for(const [t,x,y,gi] of sc.tanks)S.spawn.push({t,x,y,atk:true,gi,tank:true});
   if(sc.guns&&VD.fgun&&mode==='def')for(const [x,y] of sc.guns)S.add('g',x,y,{mg:true,gun:true,men:VD.mg.men,q:1,post:[x,y]});
   // 守る所がいくつもある戦い：goals＝[{x,y,name,cap＝おさえられている時間,lost＝敵に取られているか}]
   if(VD.tired)for(const u of S.units)if(u.side==='g'&&!u.mg){u.top=u.mor=VD.tired.g;}
-  for(const [x,y] of sc.fPos||[])S.add('f',x,y,{post:[x,y],tx:x,ty:y});
+  for(const [x,y,nm] of sc.fPos||[])S.add('f',x,y,{post:[x,y],tx:x,ty:y,nm});
   for(const [x,y] of sc.bats||[])S.add('f',x,y,{mg:true,bat:true,men:VD.mg.men,q:1,post:[x,y],batT:VD.fBat.first+Math.random()*VD.fBat.every});
-  for(const [t,L] of sc.gReinf||[])for(const q of L)S.spawn.push({t,x:q[0],y:q[1],g:true,to:[q[2],q[3]]});
+  for(const [t,L] of sc.gReinf||[])for(const q of L)S.spawn.push({t,x:q[0],y:q[1],g:true,to:[q[2],q[3]],nm:q[4]});
   if(sc.goals){S.goals=sc.goals.map(g=>({x:g[0],y:g[1],name:g[2],cap:0,lost:g[3]==='f'}));S.lostN=S.goals.filter(g=>g.lost).length;}
   return S;}
 function hurt(S,v,men,mor){const m=Math.min(v.men,men*(VD.gTake&&v.side==='g'&&!v.mg&&!v.tank?VD.gTake:1));v.men-=m;if(!v.mg&&!v.tank)S.loss[v.side]+=m;if(v.mg||v.tank){v.hit=0;return;}v.mor=Math.max(0,v.mor-mor*(v.mask?VD.gas.maskMor:1)*(terrain(v.x,v.y)==='fort'?VD.steady:1));v.hit=0;}
@@ -1250,7 +1250,7 @@ const gasR=c=>VD.gas.r*Math.min(1,.4+.6*c.age/VD.gas.grow),gasK=c=>Math.max(0,Ma
 function fireArt(S,x,y){if(S.shots<1||S.artWait>0||S.over)return false;S.shots--;S.artWait=VD.art.wait;S.barr.push({x,y,t:VD.art.sec,warn:0,fxT:0,side:'g',isNew:true});return true;}
 // 時間を dt 秒進める
 function tick(S,dt){if(S.over)return;S.t+=dt;let U=S.units;
-  for(const sp of S.spawn)if(!sp.done&&S.t>=sp.t){sp.done=true;if(sp.g){const u=S.add('g',sp.x,sp.y,{tx:sp.to[0],ty:sp.to[1],home:sp.to.slice()});if(VD.tired){u.top=u.mor=VD.tired.g;}S.arrived=(S.arrived||0)+1;continue;}S.add('f',sp.x,sp.y,sp.tank?{atk:true,gi:sp.gi,tank:true,men:VD.tank.hp,q:1}:sp.atk?{atk:true,gi:sp.gi}:{post:sp.to,tx:sp.to[0],ty:sp.to[1]});}
+  for(const sp of S.spawn)if(!sp.done&&S.t>=sp.t){sp.done=true;if(sp.g){const u=S.add('g',sp.x,sp.y,{tx:sp.to[0],ty:sp.to[1],home:sp.to.slice(),nm:sp.nm});if(VD.tired){u.top=u.mor=VD.tired.g;}S.arrived=(S.arrived||0)+1;continue;}S.add('f',sp.x,sp.y,Object.assign(sp.tank?{atk:true,gi:sp.gi,tank:true,men:VD.tank.hp,q:1}:sp.atk?{atk:true,gi:sp.gi}:{post:sp.to,tx:sp.to[0],ty:sp.to[1]},{nm:sp.nm}));}
   // 戦車：故障と、近くのドイツ軍をおびえさせること
   if(VD.tank)for(const u of U){if(!u.tank)continue;if(!u.broken&&Math.random()<VD.tank.fail*dt){u.broken=true;u.tx=u.x;u.ty=u.y;u.atk=false;S.fx.push({x:u.x,y:u.y,t:0,side:'f',small:true});}
     for(const v of U)if(v.side==='g'&&!v.mg&&!v.dug&&v.state!=='rout'&&hyp(v.x-u.x,v.y-u.y)<VD.tank.fear)v.mor=Math.max(0,v.mor-VD.tank.fearMor*(u.broken?.4:1)*dt);}
@@ -1640,7 +1640,7 @@ function hud(){if(!S)return;const left=Math.max(0,VD.time-S.t),g=S.units.filter(
   {const m=$('.bMG');m.textContent=aim==='mg'?'機関銃：置く所を押す':`機関銃を置く（のこり${S.mgLeft}）`;m.disabled=S.mgLeft<1;m.classList.toggle('on',aim==='mg');}
   const r=$('.bRef');r.textContent=`補充（のこり${S.refills}回）`;r.disabled=S.refills<1;
   const h=hover&&S.units.find(u=>u.id===hover),pc=u=>Math.round(u.men/VD.unitMen*100);
-  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃でつぶすか、歩兵でふみこむ')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃でつぶすか、歩兵でふみこむ':''}`:h?`${uLabel(h)?uLabel(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃は、ほとんど効かない。砲撃か野砲で止める）'+(h.broken?'　故障して止まっている':'')):h.gun?(EN_?' field gun':'の野砲（戦車をねらう）'):'の歩兵部隊'}${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃は受けないが、撃てない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着けている途中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（はじめの${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（退いている）':h.mor<(VD.lowMor||40)?'（士気が下がっている）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（その場を掘った）':''}`:sel.size?`${sel.size}部隊を選んでいる。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したまま引くと、その線に横一列に並ぶ。'}`:'部隊を押して選ぶ。わくで囲むと、まとめて選べる。';}
+  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃でつぶすか、歩兵でふみこむ')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃でつぶすか、歩兵でふみこむ':''}`:h?`${uLabel(h)?uFull(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃は、ほとんど効かない。砲撃か野砲で止める）'+(h.broken?'　故障して止まっている':'')):h.gun?(EN_?' field gun':'の野砲（戦車をねらう）'):'の歩兵部隊'}${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃は受けないが、撃てない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着けている途中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（はじめの${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（退いている）':h.mor<(VD.lowMor||40)?'（士気が下がっている）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（その場を掘った）':''}`:sel.size?`${sel.size}部隊を選んでいる。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したまま引くと、その線に横一列に並ぶ。'}`:'部隊を押して選ぶ。わくで囲むと、まとめて選べる。';}
 // 機関銃の火点を描く：土のうの半円と、銃。向きは、撃っている相手のほう。置いたばかりの火点は、うすく描く
 function drawMG(u,dt){if(u.gun||u.bat)return drawGun(u,dt);const g=ctx,gs=u.side==='g',hv=hover===u.id,MZ=.45+.5*UZ,[px,py]=PX(u.x,u.y),set=u.setup>0;face(u,dt);
   g.save();g.translate(px,py);g.scale(MZ,MZ);if(set)g.globalAlpha=.55;g.fillStyle='rgba(20,23,15,.4)';g.strokeStyle=hv?'#fff':gs?'rgba(232,195,79,.9)':'rgba(140,170,235,.95)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,14,10,0,0,6.283);g.fill();g.stroke();
@@ -1655,7 +1655,7 @@ function drawMG(u,dt){if(u.gun||u.bat)return drawGun(u,dt);const g=ctx,gs=u.side
 //   VD.text.rep の文の中から、部隊の状況に合うものを選んで出す。{u}＝部隊の名前、{b}＝大隊の名前、{n}＝人数。
 //   出すのは、全体で RP.gap 秒に1回まで。同じ部隊の同じ種類の報告は、RP.cd 秒たたないと出さない
 const RP={list:[],st:new Map(),last:-99,gap:3.5,cd:18,box:null};
-function unitName(u){if(u.rname)return u.rname;let bn=null,bd=1e9;for(const p of VD.places)if(p[3]==='vil'||p[3]==='town'){const d=hyp(p[1]-u.x,p[2]-u.y);if(d<bd){bd=d;bn=p[0];}}
+function unitName(u){if(u.nm)return uFull(u);if(u.rname)return u.rname;let bn=null,bd=1e9;for(const p of VD.places)if(p[3]==='vil'||p[3]==='town'){const d=hyp(p[1]-u.x,p[2]-u.y);if(d<bd){bd=d;bn=p[0];}}
   const w=VD.text.unitWord||'連隊';u.rname=EN_?(w==='大隊'?'battalion':'regiment')+(bn?' at '+bn:''):(bn?bn+'の':'')+(u.dep||S.mode==='atk'?'':'予備の')+w;return u.rname;}
 function report(u,kind,lv){const T=((S.mode==='atk'&&VD.text.repAtk)||{})[kind]||(VD.text.rep||{})[kind];if(!T||!T.length)return false;const st=RP.st.get(u.id)||{};RP.st.set(u.id,st);if(S.t-(st[kind]??-99)<RP.cd||S.t-RP.last<RP.gap&&lv<2)return false;st[kind]=S.t;RP.last=S.t;
   const SB=VD.text.subUnits||(EN_?['1st Battalion','2nd Battalion','3rd Battalion']:['第1大隊','第2大隊','第3大隊']),bb=SB[Math.floor(Math.random()*SB.length)],t=T[Math.floor(Math.random()*T.length)].replace('{u}',unitName(u)).replace('{b}',bb).replace('{n}',MS?fmt(ppl(st.lossW||0)):'');
@@ -1690,7 +1690,8 @@ function reportTick(){
     if(w>=VD.unitMen*.03&&S.units.some(v=>v.side==='f'&&!v.mg&&v.state!=='rout'&&hyp(v.x-u.x,v.y-u.y)<VD.range*1.5)){report(u,'pressed',1);continue;}}
   for(const m of S.units){if(!m.mg||m.side!=='g')continue;if(S.units.some(v=>v.side==='f'&&!v.mg&&v.state!=='rout'&&hyp(v.x-m.x,v.y-m.y)<VD.mg.rush))report(m,'mgRush',2);}}
 // 部隊の兵員の数を、兵力の帯の右に書く
-function uLabel(u){if(!u.no)return '';const B=S&&S.mode==='atk'?VD.atk:VD.def,L=B&&(u.side==='g'?B.gNames:B.fNames);if(L&&L[u.no-1])return L[u.no-1];const w=VD.text.unitWord||'連隊';
+function uFull(u){const a=u.nm;return a?(Array.isArray(a)?(EN_&&a[2]||a[0]):a):uLabel(u);}
+function uLabel(u){const a=u.nm;if(a)return Array.isArray(a)?(EN_?(a[3]||a[2]):0)||a[1]||a[0]:a;if(!u.no)return '';const B=S&&S.mode==='atk'?VD.atk:VD.def,L=B&&(u.side==='g'?B.gNames:B.fNames);if(L&&L[u.no-1])return L[u.no-1];const w=VD.text.unitWord||'連隊';
   if(EN_){const o=u.no%10===1&&u.no%100!==11?'st':u.no%10===2&&u.no%100!==12?'nd':u.no%10===3&&u.no%100!==13?'rd':'th';return u.no+o+' '+({'旅団':'Bde','連隊':'Rgt','大隊':'Bn'}[w]||'');}return '第'+u.no+w;}
 function nameTag(g,u,cx,yb,w){if(VD.text.nameTags===false)return;const t=uLabel(u);if(!t)return;let f=9;g.font=`700 ${f}px "BIZ UDPGothic",sans-serif`;const m=g.measureText(t).width;if(m>w){f=f*w/m;g.font=`700 ${f.toFixed(2)}px "BIZ UDPGothic",sans-serif`;}
   g.textAlign='center';g.textBaseline='bottom';g.lineJoin='round';g.lineWidth=Math.max(1.4,f*.3);g.strokeStyle='#14170f';g.fillStyle=u.side==='g'?'#f1d882':'#c9d6f2';g.strokeText(t,cx,yb);g.fillText(t,cx,yb);g.textBaseline='alphabetic';}
@@ -1981,19 +1982,19 @@ function make(mode,opt){const S={mode,t:0,units:[],barr:[],fx:[],cap:0,over:null
   S.gTot=0;S.add=(side,x,y,o)=>{const u=Object.assign({id:++S.id,side,x,y,tx:x,ty:y,fa:side==='g'?Math.PI/2:-Math.PI/2,men:VD.unitMen*(side==='f'?S.enemy:1),mor:100,q:1+(Math.random()*2-1)*VD.vary,routAt:VD.rout*(.7+Math.random()*.6),state:'idle',hit:9,fire:0,moving:false,post:null},o||{});S.units.push(u);if(!u.mg&&!u.tank){S.no=S.no||{g:0,f:0};u.no=++S.no[side];}if(side==='g'&&!u.mg)S.gTot+=u.men;return u;};
   const sc=mode==='atk'?VD.atk:VD.def,[x0,x1,gy]=sc.gStart,n=opt.units;S.goal=sc.goal.slice();
   const snap=(x,y,r)=>{const q=trenchAt(x,y);return q&&q.d<(r||VD.trench.snap)?[q.x,q.y]:[x,y];};   // 塹壕の近くに置く部隊は、塹壕の線の上に合わせる
-  if(sc.gPos)for(const [px0,py0,dug] of sc.gPos){const [x,y]=snap(px0,py0,VD.trench.snap*2.5);S.add('g',x,y,{home:[x,y],dug:!!dug&&!!VD.dug});}   // 場所を1つずつ決めて置く（dug＝地下壕の中から始まる）
+  if(sc.gPos)for(const [px0,py0,dug,nm] of sc.gPos){const [x,y]=snap(px0,py0,VD.trench.snap*2.5);S.add('g',x,y,{home:[x,y],dug:!!dug&&!!VD.dug,nm});}   // 場所を1つずつ決めて置く（dug＝地下壕の中から始まる）
   else for(let i=0;i<n;i++){const [x,y]=snap(x0+(x1-x0)*(n>1?i/(n-1):.5),gy,VD.trench.snap*2.5);S.add('g',x,y,{home:[x,y]});}   // はじめの位置は、少しはなれた塹壕にも合わせる
   // 機関銃の火点：動かない。兵力は少ないが、遠くまで強く撃つ
   for(const [x,y] of sc.mg||[])S.add(mode==='atk'?'f':'g',x,y,{mg:true,men:VD.mg.men,q:1,post:[x,y],setup:VD.prep&&mode==='def'?VD.prep.until+VD.mg.setup:0});   // 準備砲撃のある戦いでは、砲撃が止まるまで撃てない
-  if(mode==='atk'){for(const [x0,y0,k] of sc.fr){const [x,y]=k==='fort'?[x0,y0]:snap(x0,y0),u=S.add('f',x,y,{post:[x,y],garr:k==='fort'});if(u.garr)u.men*=VD.garrison;}for(const [t,L] of sc.reinf)for(const q of L)S.spawn.push({t:t+(Math.random()*2-1)*VD.jitter,x:q[0],y:q[1],to:[q[2],q[3]]});}
-  else for(const [t,L] of sc.waves)for(const q of L)S.spawn.push({t:t>0?t+(Math.random()*2-1)*VD.jitter:0,x:q[0],y:q[1],atk:true,gi:q[2]});
+  if(mode==='atk'){for(const [x0,y0,k,nm] of sc.fr){const [x,y]=k==='fort'?[x0,y0]:snap(x0,y0),u=S.add('f',x,y,{post:[x,y],garr:k==='fort',nm});if(u.garr)u.men*=VD.garrison;}for(const [t,L] of sc.reinf)for(const q of L)S.spawn.push({t:t+(Math.random()*2-1)*VD.jitter,x:q[0],y:q[1],to:[q[2],q[3]],nm:q[4]});}
+  else for(const [t,L] of sc.waves)for(const q of L)S.spawn.push({t:t>0?t+(Math.random()*2-1)*VD.jitter:0,x:q[0],y:q[1],atk:true,gi:q[2],nm:q[3]});
   if(sc.tanks&&VD.tank)for(const [t,x,y,gi] of sc.tanks)S.spawn.push({t,x,y,atk:true,gi,tank:true});
   if(sc.guns&&VD.fgun&&mode==='def')for(const [x,y] of sc.guns)S.add('g',x,y,{mg:true,gun:true,men:VD.mg.men,q:1,post:[x,y]});
   // 守る所がいくつもある戦い：goals＝[{x,y,name,cap＝おさえられている時間,lost＝敵に取られているか}]
   if(VD.tired)for(const u of S.units)if(u.side==='g'&&!u.mg){u.top=u.mor=VD.tired.g;}
-  for(const [x,y] of sc.fPos||[])S.add('f',x,y,{post:[x,y],tx:x,ty:y});
+  for(const [x,y,nm] of sc.fPos||[])S.add('f',x,y,{post:[x,y],tx:x,ty:y,nm});
   for(const [x,y] of sc.bats||[])S.add('f',x,y,{mg:true,bat:true,men:VD.mg.men,q:1,post:[x,y],batT:VD.fBat.first+Math.random()*VD.fBat.every});
-  for(const [t,L] of sc.gReinf||[])for(const q of L)S.spawn.push({t,x:q[0],y:q[1],g:true,to:[q[2],q[3]]});
+  for(const [t,L] of sc.gReinf||[])for(const q of L)S.spawn.push({t,x:q[0],y:q[1],g:true,to:[q[2],q[3]],nm:q[4]});
   if(sc.goals){S.goals=sc.goals.map(g=>({x:g[0],y:g[1],name:g[2],cap:0,lost:g[3]==='f'}));S.lostN=S.goals.filter(g=>g.lost).length;}
   return S;}
 function hurt(S,v,men,mor){const m=Math.min(v.men,men*(VD.gTake&&v.side==='g'&&!v.mg&&!v.tank?VD.gTake:1));v.men-=m;if(!v.mg&&!v.tank)S.loss[v.side]+=m;if(v.mg||v.tank){v.hit=0;return;}v.mor=Math.max(0,v.mor-mor*(v.mask?VD.gas.maskMor:1)*(terrain(v.x,v.y)==='fort'?VD.steady:1));v.hit=0;}
@@ -2027,7 +2028,7 @@ const gasR=c=>VD.gas.r*Math.min(1,.4+.6*c.age/VD.gas.grow),gasK=c=>Math.max(0,Ma
 function fireArt(S,x,y){if(S.shots<1||S.artWait>0||S.over)return false;S.shots--;S.artWait=VD.art.wait;S.barr.push({x,y,t:VD.art.sec,warn:0,fxT:0,side:'g',isNew:true});return true;}
 // 時間を dt 秒進める
 function tick(S,dt){if(S.over)return;S.t+=dt;let U=S.units;
-  for(const sp of S.spawn)if(!sp.done&&S.t>=sp.t){sp.done=true;if(sp.g){const u=S.add('g',sp.x,sp.y,{tx:sp.to[0],ty:sp.to[1],home:sp.to.slice()});if(VD.tired){u.top=u.mor=VD.tired.g;}S.arrived=(S.arrived||0)+1;continue;}S.add('f',sp.x,sp.y,sp.tank?{atk:true,gi:sp.gi,tank:true,men:VD.tank.hp,q:1}:sp.atk?{atk:true,gi:sp.gi}:{post:sp.to,tx:sp.to[0],ty:sp.to[1]});}
+  for(const sp of S.spawn)if(!sp.done&&S.t>=sp.t){sp.done=true;if(sp.g){const u=S.add('g',sp.x,sp.y,{tx:sp.to[0],ty:sp.to[1],home:sp.to.slice(),nm:sp.nm});if(VD.tired){u.top=u.mor=VD.tired.g;}S.arrived=(S.arrived||0)+1;continue;}S.add('f',sp.x,sp.y,Object.assign(sp.tank?{atk:true,gi:sp.gi,tank:true,men:VD.tank.hp,q:1}:sp.atk?{atk:true,gi:sp.gi}:{post:sp.to,tx:sp.to[0],ty:sp.to[1]},{nm:sp.nm}));}
   // 戦車：故障と、近くのドイツ軍をおびえさせること
   if(VD.tank)for(const u of U){if(!u.tank)continue;if(!u.broken&&Math.random()<VD.tank.fail*dt){u.broken=true;u.tx=u.x;u.ty=u.y;u.atk=false;S.fx.push({x:u.x,y:u.y,t:0,side:'f',small:true});}
     for(const v of U)if(v.side==='g'&&!v.mg&&!v.dug&&v.state!=='rout'&&hyp(v.x-u.x,v.y-u.y)<VD.tank.fear)v.mor=Math.max(0,v.mor-VD.tank.fearMor*(u.broken?.4:1)*dt);}
@@ -2419,7 +2420,7 @@ function hud(){if(!S)return;const left=Math.max(0,VD.time-S.t),g=S.units.filter(
   {const m=$('.bMG');m.textContent=aim==='mg'?'機関銃：置く所を押す':`機関銃を置く（のこり${S.mgLeft}）`;m.disabled=S.mgLeft<1;m.classList.toggle('on',aim==='mg');}
   const r=$('.bRef');r.textContent=`補充（のこり${S.refills}回）`;r.disabled=S.refills<1;
   const h=hover&&S.units.find(u=>u.id===hover),pc=u=>Math.round(u.men/VD.unitMen*100);
-  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃でつぶすか、歩兵でふみこむ')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃でつぶすか、歩兵でふみこむ':''}`:h?`${uLabel(h)?uLabel(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃は、ほとんど効かない。砲撃か野砲で止める）'+(h.broken?'　故障して止まっている':'')):h.gun?(EN_?' field gun':'の野砲（戦車をねらう）'):'の歩兵部隊'}${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃は受けないが、撃てない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着けている途中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（はじめの${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（退いている）':h.mor<(VD.lowMor||40)?'（士気が下がっている）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（その場を掘った）':''}`:sel.size?`${sel.size}部隊を選んでいる。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したまま引くと、その線に横一列に並ぶ。'}`:'部隊を押して選ぶ。わくで囲むと、まとめて選べる。';}
+  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃でつぶすか、歩兵でふみこむ')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃でつぶすか、歩兵でふみこむ':''}`:h?`${uLabel(h)?uFull(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃は、ほとんど効かない。砲撃か野砲で止める）'+(h.broken?'　故障して止まっている':'')):h.gun?(EN_?' field gun':'の野砲（戦車をねらう）'):'の歩兵部隊'}${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃は受けないが、撃てない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着けている途中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（はじめの${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（退いている）':h.mor<(VD.lowMor||40)?'（士気が下がっている）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（その場を掘った）':''}`:sel.size?`${sel.size}部隊を選んでいる。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したまま引くと、その線に横一列に並ぶ。'}`:'部隊を押して選ぶ。わくで囲むと、まとめて選べる。';}
 // 機関銃の火点を描く：土のうの半円と、銃。向きは、撃っている相手のほう。置いたばかりの火点は、うすく描く
 function drawMG(u,dt){if(u.gun||u.bat)return drawGun(u,dt);const g=ctx,gs=u.side==='g',hv=hover===u.id,MZ=.45+.5*UZ,[px,py]=PX(u.x,u.y),set=u.setup>0;face(u,dt);
   g.save();g.translate(px,py);g.scale(MZ,MZ);if(set)g.globalAlpha=.55;g.fillStyle='rgba(20,23,15,.4)';g.strokeStyle=hv?'#fff':gs?'rgba(232,195,79,.9)':'rgba(140,170,235,.95)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,14,10,0,0,6.283);g.fill();g.stroke();
@@ -2434,7 +2435,7 @@ function drawMG(u,dt){if(u.gun||u.bat)return drawGun(u,dt);const g=ctx,gs=u.side
 //   VD.text.rep の文の中から、部隊の状況に合うものを選んで出す。{u}＝部隊の名前、{b}＝大隊の名前、{n}＝人数。
 //   出すのは、全体で RP.gap 秒に1回まで。同じ部隊の同じ種類の報告は、RP.cd 秒たたないと出さない
 const RP={list:[],st:new Map(),last:-99,gap:3.5,cd:18,box:null};
-function unitName(u){if(u.rname)return u.rname;let bn=null,bd=1e9;for(const p of VD.places)if(p[3]==='vil'||p[3]==='town'){const d=hyp(p[1]-u.x,p[2]-u.y);if(d<bd){bd=d;bn=p[0];}}
+function unitName(u){if(u.nm)return uFull(u);if(u.rname)return u.rname;let bn=null,bd=1e9;for(const p of VD.places)if(p[3]==='vil'||p[3]==='town'){const d=hyp(p[1]-u.x,p[2]-u.y);if(d<bd){bd=d;bn=p[0];}}
   const w=VD.text.unitWord||'連隊';u.rname=EN_?(w==='大隊'?'battalion':'regiment')+(bn?' at '+bn:''):(bn?bn+'の':'')+(u.dep||S.mode==='atk'?'':'予備の')+w;return u.rname;}
 function report(u,kind,lv){const T=((S.mode==='atk'&&VD.text.repAtk)||{})[kind]||(VD.text.rep||{})[kind];if(!T||!T.length)return false;const st=RP.st.get(u.id)||{};RP.st.set(u.id,st);if(S.t-(st[kind]??-99)<RP.cd||S.t-RP.last<RP.gap&&lv<2)return false;st[kind]=S.t;RP.last=S.t;
   const SB=VD.text.subUnits||(EN_?['1st Battalion','2nd Battalion','3rd Battalion']:['第1大隊','第2大隊','第3大隊']),bb=SB[Math.floor(Math.random()*SB.length)],t=T[Math.floor(Math.random()*T.length)].replace('{u}',unitName(u)).replace('{b}',bb).replace('{n}',MS?fmt(ppl(st.lossW||0)):'');
@@ -2469,7 +2470,8 @@ function reportTick(){
     if(w>=VD.unitMen*.03&&S.units.some(v=>v.side==='f'&&!v.mg&&v.state!=='rout'&&hyp(v.x-u.x,v.y-u.y)<VD.range*1.5)){report(u,'pressed',1);continue;}}
   for(const m of S.units){if(!m.mg||m.side!=='g')continue;if(S.units.some(v=>v.side==='f'&&!v.mg&&v.state!=='rout'&&hyp(v.x-m.x,v.y-m.y)<VD.mg.rush))report(m,'mgRush',2);}}
 // 部隊の兵員の数を、兵力の帯の右に書く
-function uLabel(u){if(!u.no)return '';const B=S&&S.mode==='atk'?VD.atk:VD.def,L=B&&(u.side==='g'?B.gNames:B.fNames);if(L&&L[u.no-1])return L[u.no-1];const w=VD.text.unitWord||'連隊';
+function uFull(u){const a=u.nm;return a?(Array.isArray(a)?(EN_&&a[2]||a[0]):a):uLabel(u);}
+function uLabel(u){const a=u.nm;if(a)return Array.isArray(a)?(EN_?(a[3]||a[2]):0)||a[1]||a[0]:a;if(!u.no)return '';const B=S&&S.mode==='atk'?VD.atk:VD.def,L=B&&(u.side==='g'?B.gNames:B.fNames);if(L&&L[u.no-1])return L[u.no-1];const w=VD.text.unitWord||'連隊';
   if(EN_){const o=u.no%10===1&&u.no%100!==11?'st':u.no%10===2&&u.no%100!==12?'nd':u.no%10===3&&u.no%100!==13?'rd':'th';return u.no+o+' '+({'旅団':'Bde','連隊':'Rgt','大隊':'Bn'}[w]||'');}return '第'+u.no+w;}
 function nameTag(g,u,cx,yb,w){if(VD.text.nameTags===false)return;const t=uLabel(u);if(!t)return;let f=9;g.font=`700 ${f}px "BIZ UDPGothic",sans-serif`;const m=g.measureText(t).width;if(m>w){f=f*w/m;g.font=`700 ${f.toFixed(2)}px "BIZ UDPGothic",sans-serif`;}
   g.textAlign='center';g.textBaseline='bottom';g.lineJoin='round';g.lineWidth=Math.max(1.4,f*.3);g.strokeStyle='#14170f';g.fillStyle=u.side==='g'?'#f1d882':'#c9d6f2';g.strokeText(t,cx,yb);g.fillText(t,cx,yb);g.textBaseline='alphabetic';}
@@ -3206,6 +3208,43 @@ Object.assign(VD,{
   placesLL:[['アルベール',50.002,2.652,'town'],['ボーモン・アメル',50.084,2.657,'vil'],['ティエプヴァル',50.054,2.689,'vil'],['オヴィレール',50.031,2.698,'vil'],['ラ・ボワセル',50.020,2.693,'vil'],['フリクール',49.998,2.714,'vil'],['マメッツ',49.997,2.737,'vil'],['モントーバン',50.007,2.781,'vil'],
     ['コンタルメゾン',50.023,2.731,'vil'],['ポジエール',50.039,2.724,'vil'],['クールスレット',50.058,2.746,'vil'],['マルタンピュイシュ',50.049,2.763,'vil'],['ロングヴァル',50.026,2.803,'vil'],['グランクール',50.080,2.712,'vil'],['ル・サール',50.070,2.780,'vil'],
     ['アンクル川',50.04,2.655,'riv'],['↑ バポーム（北東へ約8km）',50.074,2.80,'area'],['アルベール＝バポーム街道',50.03,2.712,'area']]});
+// ===== 実際の部隊名 =====
+// [正式な名前, バーの上に出す略した名前, 英語の正式な名前, 英語の略した名前]。部隊の位置の組の、いちばんうしろに書いて使う
+// ドイツ軍は連隊の名前（第2部で連隊を確かめられなかった所は、師団・軍団の名前）。イギリス軍は師団の名前で書く
+VD.names={
+  r119:['予備歩兵第119連隊（第26予備師団）','予119','Reserve Infantry Regiment 119 (26th Reserve Division)','RIR 119'],
+  r99:['予備歩兵第99連隊（第26予備師団）','予99','Reserve Infantry Regiment 99 (26th Reserve Division)','RIR 99'],
+  i180:['歩兵第180連隊（第26予備師団）','歩180','Infantry Regiment 180 (26th Reserve Division)','IR 180'],
+  r110:['予備歩兵第110連隊（第28予備師団）','予110','Reserve Infantry Regiment 110 (28th Reserve Division)','RIR 110'],
+  r111:['予備歩兵第111連隊（第28予備師団）','予111','Reserve Infantry Regiment 111 (28th Reserve Division)','RIR 111'],
+  r109:['予備歩兵第109連隊（第28予備師団）','予109','Reserve Infantry Regiment 109 (28th Reserve Division)','RIR 109'],
+  bR6:['バイエルン予備歩兵第6連隊（第10バイエルン師団）','バ予6','Bavarian Reserve Infantry Regiment 6 (10th Bavarian Division)','BRIR 6'],
+  bR8:['バイエルン予備歩兵第8連隊（第10バイエルン師団）','バ予8','Bavarian Reserve Infantry Regiment 8 (10th Bavarian Division)','BRIR 8'],
+  bI16:['バイエルン歩兵第16連隊（第10バイエルン師団）','バ歩16','Bavarian Infantry Regiment 16 (10th Bavarian Division)','BIR 16'],
+  // 第2部（9月15日）
+  d45:['第45予備師団','予45師','45th Reserve Division','45 RD'],
+  bI17:['バイエルン歩兵第17連隊（第3バイエルン師団）','バ歩17','Bavarian Infantry Regiment 17 (3rd Bavarian Division)','BIR 17'],
+  bI18:['バイエルン歩兵第18連隊（第3バイエルン師団）','バ歩18','Bavarian Infantry Regiment 18 (3rd Bavarian Division)','BIR 18'],
+  bK2:['第2バイエルン軍団の部隊','バ2軍','II Bavarian Corps','II Bav'],
+  // イギリス軍（第1部）
+  b29:['第29師団','第29師','29th Division','29 Div'],
+  nfl:['ニューファンドランド連隊（第29師団）','NF連隊','Newfoundland Regiment (29th Division)','Nfld'],
+  b36:['第36（アルスター）師団','第36師','36th (Ulster) Division','36 Div'],
+  b32:['第32師団','第32師','32nd Division','32 Div'],
+  b8:['第8師団','第8師','8th Division','8 Div'],
+  b34:['第34師団','第34師','34th Division','34 Div'],
+  b21:['第21師団','第21師','21st Division','21 Div'],
+  b7:['第7師団','第7師','7th Division','7 Div'],
+  b18:['第18師団','第18師','18th Division','18 Div'],
+  b30:['第30師団','第30師','30th Division','30 Div'],
+  // イギリス軍（第2部）
+  c2:['第2カナダ師団','加2師','2nd Canadian Division','2 Cdn'],
+  b15:['第15（スコットランド）師団','第15師','15th (Scottish) Division','15 Div'],
+  b47:['第47（ロンドン）師団','第47師','47th (London) Division','47 Div'],
+  nz:['ニュージーランド師団','NZ師','New Zealand Division','NZ Div'],
+  b41:['第41師団','第41師','41st Division','41 Div'],
+  b14:['第14師団','第14師','14th Division','14 Div']};
+const SNM=VD.names;   // 下で使う短い呼び名
 VD.def={ownMg:2,goalName:'7つの村',gStart:[0,0,0],
   enemy:.7,          // イギリス軍の1部隊の兵力の倍率（数が多い分、1部隊は小さくする）
   eWalk:true,        // true＝敵の歩兵は、撃たれても立ち止まらず、歩いて進み続ける
@@ -3214,17 +3253,19 @@ VD.def={ownMg:2,goalName:'7つの村',gStart:[0,0,0],
   // 守る村：[緯度, 経度, 名前]
   goalsLL:[[50.084,2.657,'ボーモン・アメル'],[50.054,2.689,'ティエプヴァル'],[50.031,2.698,'オヴィレール'],[50.020,2.693,'ラ・ボワセル'],[49.998,2.714,'フリクール'],[49.997,2.737,'マメッツ'],[50.007,2.781,'モントーバン']],
   // ドイツ軍の部隊：[緯度, 経度, 1＝地下壕の中から始まる／0＝ふつうに立っている（後ろの線の予備）]
-  gLL:[[50.083,2.6505,1],[50.066,2.677,1],[50.054,2.683,1],[50.031,2.69,1],[50.02,2.689,1],[50.0,2.7065,1],[49.991,2.737,1],[49.996,2.781,1],[50.076,2.705,0],[50.04,2.722,0],[50.032,2.762,0]],
+  //   北から：ボーモン・アメル、シュヴァーベン堡塁、ティエプヴァル、オヴィレール、ラ・ボワセル、フリクール、マメッツ、モントーバン。うしろの線の予備3つ。
+  //   予備歩兵第99連隊は、シュヴァーベン堡塁とティエプヴァルの2か所を受け持っていたので、同じ名前の部隊が2つある
+  gLL:[[50.083,2.6505,1,SNM.r119],[50.066,2.677,1,SNM.r99],[50.054,2.683,1,SNM.r99],[50.031,2.69,1,SNM.i180],[50.02,2.689,1,SNM.r110],[50.0,2.7065,1,SNM.r111],[49.991,2.737,1,SNM.r109],[49.996,2.781,1,SNM.bR6],[50.076,2.705,0,SNM.bR8],[50.04,2.722,0,SNM.bR8],[50.032,2.762,0,SNM.bI16]],
   mgLL:[[50.079,2.653],[50.047,2.687],[50.026,2.693],[49.996,2.711]],   // ドイツ軍の機関銃の火点（はじめから置いてある。砲撃が止まるまでは撃てない）
   // イギリス軍の波：[出てくる時刻（秒）, [[出てくる所の緯度, 経度, ねらう村の番号（0から）]…]]。イギリス軍の出発の塹壕から出る
   // 波の数：合わせて56部隊（1部隊は約2,100人で、約11万8千人）。ドイツ軍（11部隊・約3万3千人）の約3.5倍で、7月1日にこの区間を攻めた約10個師団の歩兵に近づけた（師団の人数は目安）
-  wavesLL:[[27,[[50.083,2.642,0],[50.066,2.667,1],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.986,2.737,5],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [55,[[50.083,2.642,0],[50.066,2.667,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [85,[[50.083,2.642,0],[50.066,2.667,1],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.986,2.737,5],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [118,[[50.083,2.642,0],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.986,2.737,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [150,[[50.066,2.667,1],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.986,2.737,5],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [185,[[50.083,2.642,0],[50.066,2.667,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.987,2.75,5],[49.988,2.80,6]]],
-    [220,[[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.986,2.737,5],[49.990,2.781,6],[49.988,2.80,6]]]]};
+  wavesLL:[[27,[[50.083,2.642,0,SNM.b29],[50.066,2.667,1,SNM.b36],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.986,2.737,5,SNM.b7],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [55,[[50.083,2.642,0,SNM.nfl],[50.066,2.667,1,SNM.b36],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [85,[[50.083,2.642,0,SNM.b29],[50.066,2.667,1,SNM.b36],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.986,2.737,5,SNM.b7],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [118,[[50.083,2.642,0,SNM.b29],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.986,2.737,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [150,[[50.066,2.667,1,SNM.b36],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.986,2.737,5,SNM.b7],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [185,[[50.083,2.642,0,SNM.b29],[50.066,2.667,1,SNM.b36],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.987,2.75,5,SNM.b7],[49.988,2.80,6,SNM.b30]]],
+    [220,[[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.986,2.737,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]]]};
 VD.text=Object.assign({},VD.text,{tourNewOnly:true,   // 戦いの始めの説明は、ヴェルダンにない新しい要素（isNew:true の項目）だけを出す。「説明」ボタンでは、全部を出す
   brief:{def:'1週間の砲撃が終わると、イギリス軍は、赤い矢印のように、7つの村をめざして攻撃してくると見こまれる。黄色い帯は、ドイツ軍の各連隊が受け持つ範囲、赤い輪は守る村である。砲撃が止まったら、すぐに兵を地下壕から上げる。'},
   eyebrow:'1916年7月1日　ソンム',goalWord:'村',goalWordEn:'villages',
@@ -3265,12 +3306,12 @@ VD.convert=()=>{
 VD.places=VD.placesLL.map(([n,la,lo,k])=>[n,...VD.xy(la,lo),k]);VD.forests=VD.forestsLL.map(([la,lo,rx,ry,n])=>[...VD.xy(la,lo),rx*VD.u*2,ry*VD.u*2,n]);
 VD.trenches=VD.trenchesLL.map(T=>T.map(p=>VD.xy(p[0],p[1])));VD.river=VD.riverLL.map(p=>VD.xy(p[0],p[1]));
 {const B=VD.def,T0=VD.trenches[0];let T2=VD.trenches[2];const k=VD.wire?VD.wire.off:0;
-  B.goals=B.goalsLL.map(([la,lo,n])=>[...VD.xy(la,lo),n]);B.goal=B.goals[0].slice(0,2);B.gPos=B.gLL.map(([la,lo,d])=>[...VD.xy(la,lo),d]);B.mg=B.mgLL.map(p=>VD.xy(p[0],p[1]));
-  B.waves=B.wavesLL.map(([t,L])=>[t,L.map(([la,lo,g])=>[...VD.xy(la,lo),g])]);
+  B.goals=B.goalsLL.map(([la,lo,n])=>[...VD.xy(la,lo),n]);B.goal=B.goals[0].slice(0,2);B.gPos=B.gLL.map(([la,lo,d,nm])=>[...VD.xy(la,lo),d,nm]);B.mg=B.mgLL.map(p=>VD.xy(p[0],p[1]));
+  B.waves=B.wavesLL.map(([t,L])=>[t,L.map(([la,lo,g,nm])=>[...VD.xy(la,lo),g,nm])]);
   // 両軍の塹壕の間（無人地帯）を、VD.noMans（m）まで広げる。ドイツ軍の線はそのままにして、イギリス軍の出発の塹壕と、出てくる所と、戦車を、ドイツ軍の線から遠ざける
   if(VD.noMans){const G=VD.noMans/VD.frame.mpp,near=p=>{let bq=null,bd=1e9;for(let i=1;i<T0.length;i++){const a=T0[i-1],b=T0[i],dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy||1))),q=[a[0]+dx*t,a[1]+dy*t],d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(d<bd){bd=d;bq=q;}}return [bq,bd];},
       push=p=>{const [q,d]=near(p);if(d<1||d>=G)return p;const k=G/d;return [Math.round(q[0]+(p[0]-q[0])*k),Math.round(q[1]+(p[1]-q[1])*k)];};
-    VD.trenches[2]=T2.map(push);B.waves=B.waves.map(([t,L])=>[t,L.map(([x,y,g])=>[...push([x,y]),g])]);if(B.tanksLL)B.tanksLL=B.tanksLL.map(([t,la,lo,g])=>{const p=push(VD.xy(la,lo));return [t,...VD.xyInv(p),g];});}
+    VD.trenches[2]=T2.map(push);B.waves=B.waves.map(([t,L])=>[t,L.map(([x,y,g,nm])=>[...push([x,y]),g,nm])]);if(B.tanksLL)B.tanksLL=B.tanksLL.map(([t,la,lo,g])=>{const p=push(VD.xy(la,lo));return [t,...VD.xyInv(p),g];});}
   T2=VD.trenches[2];
   if(VD.prep)VD.prep.mines=VD.prep.minesLL.map(p=>VD.xy(p[0],p[1]));
   B.guns=(B.gunsLL||[]).map(p=>VD.xy(p[0],p[1]));B.tanks=(B.tanksLL||[]).map(([t,la,lo,g])=>[t,...VD.xy(la,lo),g]);
@@ -3565,6 +3606,43 @@ Object.assign(VD,{
   placesLL:[['アルベール',50.002,2.652,'town'],['ボーモン・アメル',50.084,2.657,'vil'],['ティエプヴァル',50.054,2.689,'vil'],['オヴィレール',50.031,2.698,'vil'],['ラ・ボワセル',50.020,2.693,'vil'],['フリクール',49.998,2.714,'vil'],['マメッツ',49.997,2.737,'vil'],['モントーバン',50.007,2.781,'vil'],
     ['コンタルメゾン',50.023,2.731,'vil'],['ポジエール',50.039,2.724,'vil'],['クールスレット',50.058,2.746,'vil'],['マルタンピュイシュ',50.049,2.763,'vil'],['ロングヴァル',50.026,2.803,'vil'],['グランクール',50.080,2.712,'vil'],['ル・サール',50.070,2.780,'vil'],
     ['アンクル川',50.04,2.655,'riv'],['↑ バポーム（北東へ約8km）',50.074,2.80,'area'],['アルベール＝バポーム街道',50.03,2.712,'area']]});
+// ===== 実際の部隊名 =====
+// [正式な名前, バーの上に出す略した名前, 英語の正式な名前, 英語の略した名前]。部隊の位置の組の、いちばんうしろに書いて使う
+// ドイツ軍は連隊の名前（第2部で連隊を確かめられなかった所は、師団・軍団の名前）。イギリス軍は師団の名前で書く
+VD.names={
+  r119:['予備歩兵第119連隊（第26予備師団）','予119','Reserve Infantry Regiment 119 (26th Reserve Division)','RIR 119'],
+  r99:['予備歩兵第99連隊（第26予備師団）','予99','Reserve Infantry Regiment 99 (26th Reserve Division)','RIR 99'],
+  i180:['歩兵第180連隊（第26予備師団）','歩180','Infantry Regiment 180 (26th Reserve Division)','IR 180'],
+  r110:['予備歩兵第110連隊（第28予備師団）','予110','Reserve Infantry Regiment 110 (28th Reserve Division)','RIR 110'],
+  r111:['予備歩兵第111連隊（第28予備師団）','予111','Reserve Infantry Regiment 111 (28th Reserve Division)','RIR 111'],
+  r109:['予備歩兵第109連隊（第28予備師団）','予109','Reserve Infantry Regiment 109 (28th Reserve Division)','RIR 109'],
+  bR6:['バイエルン予備歩兵第6連隊（第10バイエルン師団）','バ予6','Bavarian Reserve Infantry Regiment 6 (10th Bavarian Division)','BRIR 6'],
+  bR8:['バイエルン予備歩兵第8連隊（第10バイエルン師団）','バ予8','Bavarian Reserve Infantry Regiment 8 (10th Bavarian Division)','BRIR 8'],
+  bI16:['バイエルン歩兵第16連隊（第10バイエルン師団）','バ歩16','Bavarian Infantry Regiment 16 (10th Bavarian Division)','BIR 16'],
+  // 第2部（9月15日）
+  d45:['第45予備師団','予45師','45th Reserve Division','45 RD'],
+  bI17:['バイエルン歩兵第17連隊（第3バイエルン師団）','バ歩17','Bavarian Infantry Regiment 17 (3rd Bavarian Division)','BIR 17'],
+  bI18:['バイエルン歩兵第18連隊（第3バイエルン師団）','バ歩18','Bavarian Infantry Regiment 18 (3rd Bavarian Division)','BIR 18'],
+  bK2:['第2バイエルン軍団の部隊','バ2軍','II Bavarian Corps','II Bav'],
+  // イギリス軍（第1部）
+  b29:['第29師団','第29師','29th Division','29 Div'],
+  nfl:['ニューファンドランド連隊（第29師団）','NF連隊','Newfoundland Regiment (29th Division)','Nfld'],
+  b36:['第36（アルスター）師団','第36師','36th (Ulster) Division','36 Div'],
+  b32:['第32師団','第32師','32nd Division','32 Div'],
+  b8:['第8師団','第8師','8th Division','8 Div'],
+  b34:['第34師団','第34師','34th Division','34 Div'],
+  b21:['第21師団','第21師','21st Division','21 Div'],
+  b7:['第7師団','第7師','7th Division','7 Div'],
+  b18:['第18師団','第18師','18th Division','18 Div'],
+  b30:['第30師団','第30師','30th Division','30 Div'],
+  // イギリス軍（第2部）
+  c2:['第2カナダ師団','加2師','2nd Canadian Division','2 Cdn'],
+  b15:['第15（スコットランド）師団','第15師','15th (Scottish) Division','15 Div'],
+  b47:['第47（ロンドン）師団','第47師','47th (London) Division','47 Div'],
+  nz:['ニュージーランド師団','NZ師','New Zealand Division','NZ Div'],
+  b41:['第41師団','第41師','41st Division','41 Div'],
+  b14:['第14師団','第14師','14th Division','14 Div']};
+const SNM=VD.names;   // 下で使う短い呼び名
 VD.def={ownMg:2,goalName:'7つの村',gStart:[0,0,0],
   enemy:.7,          // イギリス軍の1部隊の兵力の倍率（数が多い分、1部隊は小さくする）
   eWalk:true,        // true＝敵の歩兵は、撃たれても立ち止まらず、歩いて進み続ける
@@ -3573,17 +3651,19 @@ VD.def={ownMg:2,goalName:'7つの村',gStart:[0,0,0],
   // 守る村：[緯度, 経度, 名前]
   goalsLL:[[50.084,2.657,'ボーモン・アメル'],[50.054,2.689,'ティエプヴァル'],[50.031,2.698,'オヴィレール'],[50.020,2.693,'ラ・ボワセル'],[49.998,2.714,'フリクール'],[49.997,2.737,'マメッツ'],[50.007,2.781,'モントーバン']],
   // ドイツ軍の部隊：[緯度, 経度, 1＝地下壕の中から始まる／0＝ふつうに立っている（後ろの線の予備）]
-  gLL:[[50.083,2.6505,1],[50.066,2.677,1],[50.054,2.683,1],[50.031,2.69,1],[50.02,2.689,1],[50.0,2.7065,1],[49.991,2.737,1],[49.996,2.781,1],[50.076,2.705,0],[50.04,2.722,0],[50.032,2.762,0]],
+  //   北から：ボーモン・アメル、シュヴァーベン堡塁、ティエプヴァル、オヴィレール、ラ・ボワセル、フリクール、マメッツ、モントーバン。うしろの線の予備3つ。
+  //   予備歩兵第99連隊は、シュヴァーベン堡塁とティエプヴァルの2か所を受け持っていたので、同じ名前の部隊が2つある
+  gLL:[[50.083,2.6505,1,SNM.r119],[50.066,2.677,1,SNM.r99],[50.054,2.683,1,SNM.r99],[50.031,2.69,1,SNM.i180],[50.02,2.689,1,SNM.r110],[50.0,2.7065,1,SNM.r111],[49.991,2.737,1,SNM.r109],[49.996,2.781,1,SNM.bR6],[50.076,2.705,0,SNM.bR8],[50.04,2.722,0,SNM.bR8],[50.032,2.762,0,SNM.bI16]],
   mgLL:[[50.079,2.653],[50.047,2.687],[50.026,2.693],[49.996,2.711]],   // ドイツ軍の機関銃の火点（はじめから置いてある。砲撃が止まるまでは撃てない）
   // イギリス軍の波：[出てくる時刻（秒）, [[出てくる所の緯度, 経度, ねらう村の番号（0から）]…]]。イギリス軍の出発の塹壕から出る
   // 波の数：合わせて56部隊（1部隊は約2,100人で、約11万8千人）。ドイツ軍（11部隊・約3万3千人）の約3.5倍で、7月1日にこの区間を攻めた約10個師団の歩兵に近づけた（師団の人数は目安）
-  wavesLL:[[27,[[50.083,2.642,0],[50.066,2.667,1],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.986,2.737,5],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [55,[[50.083,2.642,0],[50.066,2.667,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [85,[[50.083,2.642,0],[50.066,2.667,1],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.986,2.737,5],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [118,[[50.083,2.642,0],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.986,2.737,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [150,[[50.066,2.667,1],[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.986,2.737,5],[49.987,2.75,5],[49.990,2.781,6],[49.988,2.80,6]]],
-    [185,[[50.083,2.642,0],[50.066,2.667,1],[50.031,2.682,2],[50.019,2.681,3],[49.998,2.698,4],[49.987,2.75,5],[49.988,2.80,6]]],
-    [220,[[50.055,2.675,1],[50.031,2.682,2],[50.019,2.681,3],[49.986,2.737,5],[49.990,2.781,6],[49.988,2.80,6]]]]};
+  wavesLL:[[27,[[50.083,2.642,0,SNM.b29],[50.066,2.667,1,SNM.b36],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.986,2.737,5,SNM.b7],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [55,[[50.083,2.642,0,SNM.nfl],[50.066,2.667,1,SNM.b36],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [85,[[50.083,2.642,0,SNM.b29],[50.066,2.667,1,SNM.b36],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.986,2.737,5,SNM.b7],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [118,[[50.083,2.642,0,SNM.b29],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.986,2.737,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [150,[[50.066,2.667,1,SNM.b36],[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.986,2.737,5,SNM.b7],[49.987,2.75,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]],
+    [185,[[50.083,2.642,0,SNM.b29],[50.066,2.667,1,SNM.b36],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.998,2.698,4,SNM.b21],[49.987,2.75,5,SNM.b7],[49.988,2.80,6,SNM.b30]]],
+    [220,[[50.055,2.675,1,SNM.b32],[50.031,2.682,2,SNM.b8],[50.019,2.681,3,SNM.b34],[49.986,2.737,5,SNM.b7],[49.990,2.781,6,SNM.b18],[49.988,2.80,6,SNM.b30]]]]};
 VD.text=Object.assign({},VD.text,{tourNewOnly:true,   // 戦いの始めの説明は、ヴェルダンにない新しい要素（isNew:true の項目）だけを出す。「説明」ボタンでは、全部を出す
   brief:{def:'1週間の砲撃が終わると、イギリス軍は、赤い矢印のように、7つの村をめざして攻撃してくると見こまれる。黄色い帯は、ドイツ軍の各連隊が受け持つ範囲、赤い輪は守る村である。砲撃が止まったら、すぐに兵を地下壕から上げる。'},
   eyebrow:'1916年7月1日　ソンム',goalWord:'村',goalWordEn:'villages',
@@ -3624,12 +3704,12 @@ VD.convert=()=>{
 VD.places=VD.placesLL.map(([n,la,lo,k])=>[n,...VD.xy(la,lo),k]);VD.forests=VD.forestsLL.map(([la,lo,rx,ry,n])=>[...VD.xy(la,lo),rx*VD.u*2,ry*VD.u*2,n]);
 VD.trenches=VD.trenchesLL.map(T=>T.map(p=>VD.xy(p[0],p[1])));VD.river=VD.riverLL.map(p=>VD.xy(p[0],p[1]));
 {const B=VD.def,T0=VD.trenches[0];let T2=VD.trenches[2];const k=VD.wire?VD.wire.off:0;
-  B.goals=B.goalsLL.map(([la,lo,n])=>[...VD.xy(la,lo),n]);B.goal=B.goals[0].slice(0,2);B.gPos=B.gLL.map(([la,lo,d])=>[...VD.xy(la,lo),d]);B.mg=B.mgLL.map(p=>VD.xy(p[0],p[1]));
-  B.waves=B.wavesLL.map(([t,L])=>[t,L.map(([la,lo,g])=>[...VD.xy(la,lo),g])]);
+  B.goals=B.goalsLL.map(([la,lo,n])=>[...VD.xy(la,lo),n]);B.goal=B.goals[0].slice(0,2);B.gPos=B.gLL.map(([la,lo,d,nm])=>[...VD.xy(la,lo),d,nm]);B.mg=B.mgLL.map(p=>VD.xy(p[0],p[1]));
+  B.waves=B.wavesLL.map(([t,L])=>[t,L.map(([la,lo,g,nm])=>[...VD.xy(la,lo),g,nm])]);
   // 両軍の塹壕の間（無人地帯）を、VD.noMans（m）まで広げる。ドイツ軍の線はそのままにして、イギリス軍の出発の塹壕と、出てくる所と、戦車を、ドイツ軍の線から遠ざける
   if(VD.noMans){const G=VD.noMans/VD.frame.mpp,near=p=>{let bq=null,bd=1e9;for(let i=1;i<T0.length;i++){const a=T0[i-1],b=T0[i],dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy||1))),q=[a[0]+dx*t,a[1]+dy*t],d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(d<bd){bd=d;bq=q;}}return [bq,bd];},
       push=p=>{const [q,d]=near(p);if(d<1||d>=G)return p;const k=G/d;return [Math.round(q[0]+(p[0]-q[0])*k),Math.round(q[1]+(p[1]-q[1])*k)];};
-    VD.trenches[2]=T2.map(push);B.waves=B.waves.map(([t,L])=>[t,L.map(([x,y,g])=>[...push([x,y]),g])]);if(B.tanksLL)B.tanksLL=B.tanksLL.map(([t,la,lo,g])=>{const p=push(VD.xy(la,lo));return [t,...VD.xyInv(p),g];});}
+    VD.trenches[2]=T2.map(push);B.waves=B.waves.map(([t,L])=>[t,L.map(([x,y,g,nm])=>[...push([x,y]),g,nm])]);if(B.tanksLL)B.tanksLL=B.tanksLL.map(([t,la,lo,g])=>{const p=push(VD.xy(la,lo));return [t,...VD.xyInv(p),g];});}
   T2=VD.trenches[2];
   if(VD.prep)VD.prep.mines=VD.prep.minesLL.map(p=>VD.xy(p[0],p[1]));
   B.guns=(B.gunsLL||[]).map(p=>VD.xy(p[0],p[1]));B.tanks=(B.tanksLL||[]).map(([t,la,lo,g])=>[t,...VD.xy(la,lo),g]);
@@ -3688,14 +3768,15 @@ VD.def={ownMg:1,goalName:'3つの村',gStart:[0,0,0],
   enemy:.55,eWalk:true,eSpeed:.5,
   loseAt:3,          // 3つとも取られたら負け（1つでも守れば勝ち）
   goalsLL:[[50.058,2.746,'クールスレット'],[50.049,2.763,'マルタンピュイシュ'],[50.049,2.823,'フレール']],
-  gLL:[[50.057,2.722,0],[50.0495,2.745,0],[50.0445,2.765,0],[50.039,2.789,0],[50.032,2.812,0],[50.025,2.832,0],[50.064,2.748,0],[50.052,2.818,0]],
+  //   クールスレットの前は第45予備師団、マルタンピュイシュとハイ・ウッドの近くは第3バイエルン師団、フレールの前は第2バイエルン軍団（師団・連隊は確かめていない）
+  gLL:[[50.057,2.722,0,SNM.d45],[50.0495,2.745,0,SNM.d45],[50.0445,2.765,0,SNM.bI17],[50.039,2.789,0,SNM.bI18],[50.032,2.812,0,SNM.bK2],[50.025,2.832,0,SNM.bK2],[50.064,2.748,0,SNM.d45],[50.052,2.818,0,SNM.bK2]],
   mgLL:[[50.047,2.756],[50.036,2.800]],
   gunsLL:[[50.060,2.778],[50.057,2.832]],   // ドイツ軍の野砲（はじめから置いてある）
   // イギリス軍の歩兵の波：[出てくる時刻（秒）, [[緯度, 経度, ねらう村の番号（0から）]…]]
-  wavesLL:[[8,[[50.0565,2.713,0],[50.0515,2.728,0],[50.0465,2.743,1],[50.0425,2.756,1],[50.0365,2.785,2],[50.0305,2.804,2],[50.0255,2.82,2]]],
-    [55,[[50.0515,2.728,0],[50.0465,2.743,1],[50.0395,2.770,1],[50.0305,2.804,2],[50.0255,2.82,2]]],
-    [100,[[50.0565,2.713,0],[50.0465,2.743,1],[50.0365,2.785,2],[50.0305,2.804,2],[50.0185,2.836,2]]],
-    [150,[[50.0515,2.728,0],[50.0425,2.756,1],[50.0305,2.804,2],[50.0255,2.82,2]]]],
+  wavesLL:[[8,[[50.0565,2.713,0,SNM.c2],[50.0515,2.728,0,SNM.c2],[50.0465,2.743,1,SNM.b15],[50.0425,2.756,1,SNM.b15],[50.0365,2.785,2,SNM.b47],[50.0305,2.804,2,SNM.nz],[50.0255,2.82,2,SNM.b41]]],
+    [55,[[50.0515,2.728,0,SNM.c2],[50.0465,2.743,1,SNM.b15],[50.0395,2.770,1,SNM.b47],[50.0305,2.804,2,SNM.nz],[50.0255,2.82,2,SNM.b41]]],
+    [100,[[50.0565,2.713,0,SNM.c2],[50.0465,2.743,1,SNM.b15],[50.0365,2.785,2,SNM.b47],[50.0305,2.804,2,SNM.nz],[50.0185,2.836,2,SNM.b14]]],
+    [150,[[50.0515,2.728,0,SNM.c2],[50.0425,2.756,1,SNM.b15],[50.0305,2.804,2,SNM.nz],[50.0255,2.82,2,SNM.b41]]]],
   // イギリス軍の戦車：[出てくる時刻（秒）, 緯度, 経度, ねらう村の番号]
   tanksLL:[[3,50.055,2.716,0],[6,50.050,2.731,0],[4,50.045,2.746,1],[8,50.041,2.758,1],[10,50.038,2.772,1],[3,50.032,2.800,2],[5,50.028,2.810,2],[7,50.024,2.822,2],[11,50.020,2.832,2]]};
 Object.assign(VD.text,{tourNewOnly:true,   // 戦いの始めの説明は、ヴェルダンにない新しい要素（isNew:true の項目）だけを出す。「説明」ボタンでは、全部を出す
