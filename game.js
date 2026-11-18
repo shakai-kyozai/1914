@@ -1209,7 +1209,7 @@ const TwTr=(()=>{const en=window.TW_LANG==='en',DIC=window.TW_UI_EN||{},J=/[぀-
     [/^毒ガスについて：(.*)$/,'About poison gas: $1'],[/^(.*)（軍の司令部）$/,'$1 (army HQ)'],[/^([A-Z][a-z]+ \d{4})の最前線$/,'Front line, $1'],[/^([A-Z][a-z]+ \d{4})　(.*)$/,'$1 — $2'],[/^目標：(.*)$/,'Objective: $1'],[/^守る所：(.*)$/,'Defend: $1'],[/^(.*)を占領した。$/,'$1 has been captured.'],
     [/^かかった時間：(\d+)分(\d+)秒(.*)$/,'Time taken: $1:$2$3'],[/^([−-]?)(\d+)万(\d+)人$/,(m,sg,a,b)=>sg+(a*10000+ +b).toLocaleString('en-US')],[/^((?:Spring|Autumn) \d{4})　(.*)$/,'$1 — $2']];
   // 組み合わせて作る言葉（部隊の説明など）は、部分ごとに置きかえる。長い言葉を先に
-  const PH=[['（ガスマスクを着けている途中）',' (putting on masks)'],['の機関銃の火点',' machine-gun post'],['砲撃でつぶすか、歩兵でふみこむ','destroy with artillery or overrun with infantry'],['（自動で計算した結果）',' (calculated automatically)'],['（ガスマスク）',' (gas masks)'],['（塹壕の中）',' (in trench)'],['（ガスの中）',' (in gas)'],['（退いている）',' (retreating)'],['（白兵戦）',' (melee)'],['（設置中）',' (setting up)'],['の歩兵部隊',' infantry'],['ヴェルダン','Verdun'],['フランス軍','French'],['ドイツ軍','German'],['イギリス軍','British'],['アメリカ軍','American'],['兵力','strength'],['士気','morale'],['のこり','left'],['部隊',' units'],['約','about '],['万人','0k'],['万発','0k shells'],['　','  '],['、',', '],['。','. '],['「','“'],['」','”'],['（',' ('],['）',')'],['：',': '],['〜','–'],['・',' / ']];
+  const PH=[['（ガスマスクを着けている途中）',' (putting on masks)'],['（地下壕の中。砲撃の損害は受けないが、射撃できない）',' (in the dugout: safe from shelling, but cannot fire)'],['（地下壕から上がる途中）',' (climbing out of the dugout)'],['の機関銃の火点',' machine-gun post'],['砲撃でつぶすか、歩兵でふみこむ','destroy with artillery or overrun with infantry'],['（自動で計算した結果）',' (calculated automatically)'],['（ガスマスク）',' (gas masks)'],['（塹壕の中）',' (in trench)'],['（ガスの中）',' (in gas)'],['（退いている）',' (retreating)'],['（白兵戦）',' (melee)'],['（設置中）',' (setting up)'],['の歩兵部隊',' infantry'],['ヴェルダン','Verdun'],['フランス軍','French'],['ドイツ軍','German'],['イギリス軍','British'],['アメリカ軍','American'],['兵力','strength'],['士気','morale'],['のこり','left'],['部隊',' units'],['約','about '],['万人','0k'],['万発','0k shells'],['　','  '],['、',', '],['。','. '],['「','“'],['」','”'],['（',' ('],['）',')'],['：',': '],['〜','–'],['・',' / ']];
   const tail=s=>{s=s.replace(/([−-]?\d[\d,]*(?:\.\d+)?)万人/g,(m,n)=>fm(n)).replace(/([−-]?\d[\d,]*(?:\.\d+)?)万発/g,(m,n)=>fm(n)+' shells').replace(/([−-]?\d[\d,]*(?:\.\d+)?)億マルク/g,(m,n)=>fb(n)+' marks').replace(/([−-]?\d[\d,]*(?:\.\d+)?)万/g,(m,n)=>fm(n)).replace(/(\d+)回目／(\d+)回/g,'turn $1 of $2').replace(/＋/g,'+').replace(/％/g,'%');if(J.test(s))for(const [a,b] of PH)if(s.includes(a))s=s.split(a).join(b);return s;};
   function one(t){if(!en||!t||!J.test(t))return t;const m=t.match(/^(\s*)([\s\S]*?)(\s*)$/),core=pre(m[2]);let out=DIC[core];
     if(out===undefined){const nums=[];const key=core.replace(NUM,x=>{nums.push(x);return '{n}';});const tp=DIC[key];if(tp!==undefined)out=tp.replace(/\{(\d+)(m|b)?\}/g,(q,i,f)=>{const v=nums[+i];return v===undefined?'':f==='m'?fm(v):f==='b'?fb(v):v;});}
@@ -1794,7 +1794,7 @@ function hud(){if(!S)return;const left=Math.max(0,VD.time-S.t),g=S.units.filter(
   {const m=$('.bMG');m.textContent=aim==='mg'?'機関銃：設置地点を押す':`機関銃を置く（のこり${S.mgLeft}）`;m.disabled=S.mgLeft<1;m.classList.toggle('on',aim==='mg');}
   const r=$('.bRef');r.textContent=`補充（のこり${S.refills}回）`;r.disabled=S.refills<1;
   const h=hover&&S.units.find(u=>u.id===hover),pc=u=>Math.round(u.men/VD.unitMen*100);
-  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃で制圧するか、歩兵を突入させる')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃で制圧するか、歩兵を突入させる':''}`:h?`${uLabel(h)?uFull(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃はほとんど効かない。砲撃か野砲で阻止する）'+(h.broken?'　故障して停止している':'')):h.gun?(EN_?' field gun':'の野砲（戦車を狙う）'):'の歩兵部隊'}${h.dug?(EN_?(h.dugT>0?' (climbing out of the dugout)':' (in the dugout: safe from shelling, but cannot fire)'):(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃の損害は受けないが、射撃できない）')):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着用中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（当初の${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（後退中）':h.mor<(VD.lowMor||40)?'（士気が低下している）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（散兵壕を掘った）':''}`:sel.size?`${sel.size}部隊を選択中。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したままなぞると、その線に沿って横一列に並ぶ。'}`:'部隊を押して選択する。枠で囲むと、まとめて選択できる。';}
+  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃で制圧するか、歩兵を突入させる')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃で制圧するか、歩兵を突入させる':''}`:h?`${uLabel(h)?uFull(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃はほとんど効かない。砲撃か野砲で阻止する）'+(h.broken?'　故障して停止している':'')):h.gun?(EN_?' field gun':'の野砲（戦車を狙う）'):'の歩兵部隊'}${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃の損害は受けないが、射撃できない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着用中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（当初の${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（後退中）':h.mor<(VD.lowMor||40)?'（士気が低下している）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（散兵壕を掘った）':''}`:sel.size?`${sel.size}部隊を選択中。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したままなぞると、その線に沿って横一列に並ぶ。'}`:'部隊を押して選択する。枠で囲むと、まとめて選択できる。';}
 // 機関銃の火点を描く：土のうの半円と、銃。向きは、撃っている相手のほう。置いたばかりの火点は、うすく描く
 function drawMG(u,dt){if(u.gun||u.bat)return drawGun(u,dt);const g=ctx,gs=u.side==='g',hv=hover===u.id,MZ=.45+.5*UZ,[px,py]=PX(u.x,u.y),set=u.setup>0;face(u,dt);
   g.save();g.translate(px,py);g.scale(MZ,MZ);if(set)g.globalAlpha=.55;g.fillStyle='rgba(20,23,15,.4)';g.strokeStyle=hv?'#fff':gs?'rgba(232,195,79,.9)':'rgba(140,170,235,.95)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,14,10,0,0,6.283);g.fill();g.stroke();
@@ -1817,16 +1817,16 @@ function report(u,kind,lv){const T=((S.mode==='atk'&&VD.text.repAtk)||{})[kind]|
 function clock(){const m=Math.floor((VD.clock0||450)+S.t*(VD.clockK||2.4)),h=Math.floor(m/60)%24,dd=VD.clockDay0?VD.clockDay0+Math.floor(m/1440):0;return EN_?(dd?`${dd} Sep ${h}:`:h+':')+String(m%60).padStart(2,'0'):(dd?dd+'日 ':'')+h+'時'+String(m%60).padStart(2,'0')+'分';}   // ゲームの中の時刻（VD.clock0＝始まりの時刻を0時からの分で、VD.clockK＝1秒が何分か）
 // 吹き出し：報告した部隊の上に、小さな文字で出す。RP.life 秒たつと消える。近くの吹き出しと重なるときは、上にずらす
 function wrapText(g,t,W){const L=[];let line='';for(const ch of t){if(g.measureText(line+ch).width>W&&line){L.push(line);line=/[、。！？）」]/.test(ch)?'':ch;if(line==='')L[L.length-1]+=ch;}else line+=ch;}if(line)L.push(line);return L;}
-function drawBubbles(){if(!S||!RP.list.length)return;const g=ctx,life=VD.repLife||7,z=Math.max(1,zoom),fs=10/Math.sqrt(z),pad=3.5/Math.sqrt(z),W=150/Math.sqrt(z),lh=fs*1.3,boxes=[];
+function drawBubbles(){if(!S||!RP.list.length)return;let g=ctx;const life=VD.repLife||7,z=Math.max(1,zoom),fs=10/Math.sqrt(z),pad=3.5/Math.sqrt(z),W=150/Math.sqrt(z),lh=fs*1.3,boxes=[];
   RP.list=RP.list.filter(r=>S.t-r.t<life);g.save();g.font=`700 ${fs}px "BIZ UDPGothic",sans-serif`;g.textAlign='left';g.textBaseline='top';
-  for(const r of RP.list.slice().reverse()){const u=S.units.find(q=>q.id===r.id);if(u){r.x=u.x;r.y=u.y;}const p=PX(r.x,r.y),L=wrapText(g,r.txt,W),w=Math.max(...L.map(l=>g.measureText(l).width))+pad*2+3,h=L.length*lh+pad*2;
+  for(const r of RP.list.slice().reverse()){const u=S.units.find(q=>q.id===r.id);if(u){r.x=u.x;r.y=u.y;}const p=PX(r.x,r.y),L=(g=bbBox(p[0],p[1])||ctx,wrapText(g,r.txt,W)),w=Math.max(...L.map(l=>g.measureText(l).width))+pad*2+3,h=L.length*lh+pad*2;
     let x=p[0]-w/2,y=Math.max(camY+4/z,p[1]-46/Math.sqrt(z)-h);for(let k=0;k<6;k++){const hit=boxes.find(b=>x<b[0]+b[2]&&x+w>b[0]&&y<b[1]+b[3]&&y+h>b[1]);if(!hit)break;y=hit[1]-h-3;}boxes.push([x,y,w,h]);
     const age=S.t-r.t,a=Math.min(1,age*4,(life-age)/1.2);g.globalAlpha=Math.max(0,a);
     g.fillStyle=r.lv>=2?'rgba(52,16,13,.88)':'rgba(18,20,17,.84)';g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,3);else g.rect(x,y,w,h);g.fill();
     g.beginPath();g.moveTo(p[0]-4,y+h);g.lineTo(p[0]+4,y+h);g.lineTo(p[0],y+h+5);g.fill();
     g.fillStyle=r.lv>=2?'#d9493b':r.lv===1?'#e0b25a':'#7da86a';g.fillRect(x,y,2.5,h);
     g.fillStyle='#f3ead2';L.forEach((l,i)=>g.fillText(l,x+pad+3,y+pad+i*lh));}
-  g.restore();}
+  ctx.restore();}
 function drawRep(){if(!RP.box)return;RP.box.innerHTML=RP.list.map((r,i)=>`<button class="lv${r.lv}" data-id="${r.id}" style="opacity:${i?Math.max(.45,1-i*.18):1}"><small>${r.clock}　${EN_?"from the "+r.from:r.from+"より"}</small>${r.txt}</button>`).join('');}
 function reportTick(){
   const k=Math.floor(S.t);if(k===RP.k)return;RP.k=k;   // 1秒に1回だけ調べる
@@ -1907,9 +1907,9 @@ function drawDug(u){const g=ctx,[px,py]=PX(u.x,u.y),on=sel.has(u.id),hv=hover===
 // 野砲：車輪2つと、長い砲身と、盾。戦車をねらっているときは、砲身をそちらへ向ける
 function drawGun(u,dt){const g=ctx,hv=hover===u.id,MZ=.5+.5*UZ,[px,py]=PX(u.x,u.y);face(u,dt);const GI=gunIm[u.side];
   if(GI){const G=VART.guns,th=Math.PI-(u.fa||0);let k=Math.round(th/(Math.PI/8));k=((k%16)+16)%16;const s=G.size*MZ;g.save();g.strokeStyle=hv?'#fff':u.side==='f'?'rgba(127,159,216,.8)':'rgba(232,195,79,.8)';g.lineWidth=hv?2:1.2;g.beginPath();g.ellipse(px,py,15*MZ,10*MZ,0,0,6.283);g.stroke();
-    g.drawImage(GI,k*G.s,0,G.s,G.s,px-s/2,py-s/2,s,s);if(u.fire>0){g.fillStyle='rgba(255,220,150,.85)';const a=u.fa||0;g.beginPath();g.arc(px+Math.cos(a)*s*.42,py+Math.sin(a)*s*.42*VW.sy-3*MZ,3.5*MZ,0,6.283);g.fill();}g.restore();}
+    g.drawImage(GI,k*G.s,0,G.s,G.s,px-s/2,py-s/2,s,s);{const a=u.fa||0;gunFx(g,u,dt,px+Math.cos(a)*s*.42,py+Math.sin(a)*s*.42*VW.sy-3*MZ,MZ,a);}g.restore();}
   else{g.save();g.translate(px,py);g.scale(MZ,MZ);g.fillStyle='rgba(20,23,15,.45)';g.strokeStyle=hv?'#fff':u.side==='f'?'rgba(127,159,216,.95)':'rgba(232,195,79,.9)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,16,11,0,0,6.283);g.fill();g.stroke();
-  g.rotate(Math.atan2(Math.sin(u.fa)*VW.sy,Math.cos(u.fa)));g.strokeStyle='#1e1d19';g.lineWidth=3;g.beginPath();g.moveTo(-9,0);g.lineTo(14,0);g.stroke();g.fillStyle='#5d5a47';g.fillRect(-3,-7,3,14);g.fillStyle='#2b2a25';for(const yy of [-7.5,7.5]){g.beginPath();g.ellipse(-4,yy,4.2,2.2,0,0,6.283);g.fill();}g.strokeStyle='#3b3a33';g.lineWidth=2;g.beginPath();g.moveTo(-5,0);g.lineTo(-14,0);g.stroke();g.restore();}
+  g.rotate(Math.atan2(Math.sin(u.fa)*VW.sy,Math.cos(u.fa)));g.strokeStyle='#1e1d19';g.lineWidth=3;g.beginPath();g.moveTo(-9,0);g.lineTo(14,0);g.stroke();g.fillStyle='#5d5a47';g.fillRect(-3,-7,3,14);g.fillStyle='#2b2a25';for(const yy of [-7.5,7.5]){g.beginPath();g.ellipse(-4,yy,4.2,2.2,0,0,6.283);g.fill();}g.strokeStyle='#3b3a33';g.lineWidth=2;g.beginPath();g.moveTo(-5,0);g.lineTo(-14,0);g.stroke();g.restore();{const a=u.fa||0;gunFx(g,u,dt,px+Math.cos(a)*14*MZ,py+Math.sin(a)*14*MZ*VW.sy,MZ,a);}}
   const w=18,x0=px-w/2,y0=py-14*MZ-4;g.fillStyle='#14170fcc';g.fillRect(x0-1,y0-1,w+2,4.4);g.fillStyle=u.side==='f'?'#7f9fd8':'#e8c34f';g.fillRect(x0,y0,w*u.men/VD.mg.men,2.4);
   const nm=u.bat?(EN_?'French 75 guns':(VD.text.batName||'砲兵')):EN_?'field gun':'野砲';g.font='700 9px "BIZ UDPGothic",sans-serif';g.textAlign='center';g.lineWidth=2.5;g.strokeStyle='#14170fcc';g.fillStyle='#f1ead6';g.strokeText(nm,px,py+12*MZ+9);g.fillText(nm,px,py+12*MZ+9);}
 // 戦車：8つの向きの絵から、いちばん近い向きを選んで描く。故障した戦車は、灰色にして煙を出す
@@ -1949,10 +1949,10 @@ function drawForm(g,d){const a=ground(d.x,d.y),b=ground(d.x2,d.y2),L=S.units.fil
     g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.stroke();const an=Math.atan2(q[1]-p[1],q[0]-p[0]);g.beginPath();g.moveTo(q[0]+Math.cos(an)*5,q[1]+Math.sin(an)*5);g.lineTo(q[0]+Math.cos(an+2.4)*7,q[1]+Math.sin(an+2.4)*7);g.lineTo(q[0]+Math.cos(an-2.4)*7,q[1]+Math.sin(an-2.4)*7);g.closePath();g.fillStyle='#ffd65a';g.fill();}
   g.restore();}
 // マウスのそばに、いまできることを、絵と言葉で出す（例：塹壕に突入する）
-function drawHint(H){const g=ctx;if(!H||!mouse)return;
+function drawHint(H){let g=ctx;if(!H||!mouse)return;
   // 塹壕：部隊が入る所を、明るい線で示す
   if(H.k==='trench'){let L=0;for(const u of S.units)if(sel.has(u.id))L+=VSim.depLen(u);const TL=VSim.trenchLen(H.q.i),a=Math.max(0,H.q.s-L/2),b=Math.min(TL,H.q.s+L/2);g.lineCap='round';g.strokeStyle='rgba(255,214,90,.85)';g.lineWidth=3;g.setLineDash([6,4]);g.beginPath();for(let q=a;;q+=8){const t=VSim.trenchPt(H.q.i,Math.min(q,b)),p=PX(t[0],t[1]);q===a?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1]);if(q>=b)break;}g.stroke();g.setLineDash([]);}
-  g.font='700 12px "BIZ UDPGothic","BIZ UDPゴシック",sans-serif';const tw=g.measureText(H.t).width,bw=tw+34,bh=24;let x=mouse[0]+14,y=mouse[1]-bh-8;if(x+bw>camX+SW/zoom-4)x=mouse[0]-bw-14;if(y<camY+4)y=mouse[1]+14;
+  g=bbBox(mouse[0],mouse[1])||ctx;g.font='700 12px "BIZ UDPGothic","BIZ UDPゴシック",sans-serif';const tw=g.measureText(H.t).width,bw=tw+34,bh=24;let x=mouse[0]+14,y=mouse[1]-bh-8;if(x+bw>camX+SW/zoom-4)x=mouse[0]-bw-14;if(y<camY+4)y=mouse[1]+14;
   const red=H.k==='melee'||H.k==='mg'||(H.k==='trench'&&H.t.length>8);g.fillStyle='rgba(20,23,15,.9)';g.strokeStyle=red?'#ff8f80':'#ffd65a';g.lineWidth=1.5;g.beginPath();if(g.roundRect)g.roundRect(x,y,bw,bh,5);else g.rect(x,y,bw,bh);g.fill();g.stroke();
   // 絵：塹壕に入りこむ矢印／攻める矢印
   const ix=x+14,iy=y+12,c=red?'#ff8f80':'#ffd65a';g.strokeStyle=c;g.fillStyle=c;g.lineWidth=1.8;g.lineJoin=g.lineCap='round';
@@ -1965,7 +1965,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   if(!S.over&&!tourOn){VSim.tick(S,dt);if(S.note){say(S.note);S.note=null;}if((S.arrived||0)>(S.arrSaid||0)){S.arrSaid=S.arrived;if(!S.arrT||S.t-S.arrT>4){S.arrT=S.t;say(EN_?'Reinforcements have arrived. Select them and give them orders.':(VD.text.reinfNote||'援軍が到着した。部隊を選んで命令を出す。'));snd('whistle',3);}}if(S.units.some(u=>u.fire&&!u.mg))snd('rifle',2.2);if(S.units.some(u=>u.fire&&u.mg))snd('mg',1.3);}
   // 重い端末では、兵士の絵を1人おきに描く
   slow=slow*.95+dt*1000*.05;if(slow>34&&skip<2)skip=2;if(msgT>0){msgT-=dt;}if(flash){flash.t-=dt;if(flash.t<=0)flash=null;}
-  const g=ctx,SY=VW.sy,ring=(x,y,r)=>{const p=PX(x,y);g.beginPath();g.ellipse(p[0],p[1],r,r*SY,0,0,6.283);};
+  bbBegin();const g=ctx,SY=VW.sy,ring=(x,y,r)=>{const p=PX(x,y);g.beginPath();g.ellipse(p[0],p[1],r,r*SY,0,0,6.283);};
   // マウスが画面のはしにあるとき（大きく映しているとき）は、地図を動かす
   if(zoom>1&&(keys.a||keys.d||keys.w||keys.s)){const v=420*dt/zoom;pan((keys.d?v:0)-(keys.a?v:0),(keys.s?v:0)-(keys.w?v:0));}
   if(mraw)mouse=[mraw[0]/zoom+camX,mraw[1]/zoom+camY];
@@ -1998,7 +1998,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
     if(f.mine){const q=f.t/3.2,sc=f.mine*(.8+.5*UZ);
       if(f.t<.3){g.fillStyle=`rgba(255,248,230,${(.45*(1-f.t/.3)).toFixed(2)})`;g.fillRect(-4000,-4000,9000,9000);}
       for(const dl of [0,.35]){const qq=(f.t-dl)/1.4;if(qq>0&&qq<1){g.strokeStyle=`rgba(255,236,200,${(.85*(1-qq)).toFixed(2)})`;g.lineWidth=3.5*(1-qq)+1;g.beginPath();g.ellipse(p[0],p[1],(14+qq*150)*sc,(14+qq*150)*sc*VW.sy,0,0,6.283);g.stroke();}}
-      if(f.t<4&&f.nm){const a=Math.min(1,(4-f.t)/.6),t=(EN_?'Mine: ':'地雷の爆発：')+f.nm;g.save();g.globalAlpha=a;g.font='700 15px "BIZ UDPGothic",sans-serif';const tw=g.measureText(t).width,bx=Math.max(4,Math.min(SW-tw-20,p[0]-tw/2-8)),by=Math.max(4,p[1]-150*sc-26);
+      if(f.t<4&&f.nm){const a=Math.min(1,(4-f.t)/.6),t=(EN_?'Mine: ':'地雷の爆発：')+f.nm;const g=bbBox(p[0],p[1])||ctx;g.save();g.globalAlpha=a;g.font='700 15px "BIZ UDPGothic",sans-serif';const tw=g.measureText(t).width,bx=Math.max(4,Math.min(SW-tw-20,p[0]-tw/2-8)),by=Math.max(4,p[1]-150*sc-26);
         g.fillStyle='rgba(122,24,18,.92)';g.fillRect(bx,by,tw+16,24);g.strokeStyle='#ffd9a0';g.lineWidth=1.5;g.strokeRect(bx,by,tw+16,24);g.fillStyle='#fff3e0';g.textAlign='center';g.textBaseline='middle';g.fillText(t,bx+tw/2+8,by+12.5);g.textBaseline='alphabetic';
         g.strokeStyle='rgba(255,217,160,.9)';g.beginPath();g.moveTo(p[0],by+24);g.lineTo(p[0],p[1]-8);g.stroke();g.restore();}
       if(q<1){const H=(40+Math.sqrt(q)*170)*sc,Wd=(16+q*40)*sc,top=p[1]-H*(q<.5?1:1-(q-.5)*.6);
@@ -2034,7 +2034,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   if(S.units.some(u=>u.melee))snd('melee',2.6);
   // 銃撃と砲撃の効果（three.quarks が使えるとき）。位置は、画面の位置に直して渡す
   if(vfx){for(const u of S.units){const v=u.fire&&u.state!=='rout'?S.units.find(q=>q.id===u.aim):null,hw=u.mg?2:size(u)[0]-4,a=(u.fa||0)+Math.PI/2,lx=Math.cos(a),ly=Math.sin(a)*SY,pu=PX(u.x,u.y),pv=v?PX(v.x,v.y):[0,0];vfx.fire(u.id,pu[0],pu[1]-6,pv[0],pv[1]-6,!!v,hw*hyp(lx,ly),Math.atan2(ly,lx),u.mg?VD.fx.mgRate:1);}if(vfx.view)vfx.view(camX,camY,zoom);vfx.update(dt,S.units);}
-  drawTracers(g,dt);
+  drawGunSmoke(g,dt);drawTracers(g,dt);
   // 砲撃・機関銃を置く所の目安：マウスの下の地面に、輪を出す
   if(aim&&gm&&mouse){const ok=aim!=='mg'||S.units.some(u=>u.side==='g'&&!u.mg&&u.state!=='rout'&&hyp(u.x-gm[0],u.y-gm[1])<VD.mg.placeR);g.strokeStyle=aim==='gas'?'#c9e06a':ok?'#ffd65a':'#ff6b5c';g.lineWidth=1.6;g.setLineDash([5,4]);ring(gm[0],gm[1],aim==='art'?VD.art.r:aim==='gas'?VD.gas.r:VD.mg.range);g.stroke();g.setLineDash([]);if(aim==='mg'){g.fillStyle=ok?'#ffd65a':'#ff6b5c';ring(gm[0],gm[1],4);g.fill();}}
   // 方位：地図の上が北でない戦いでは、北の向きを矢印で示す
@@ -2133,8 +2133,8 @@ function showBrief(next){brief=makeBrief();const T=VD.text.brief||{},EN2=EN;cons
   tourOn=true;const w=document.createElement('div');w.className='vbrief';const txt=T[S.mode]||(S.mode==='def'?(EN_?`Red arrows show where the enemy is expected to advance. Yellow areas are the sectors each German unit holds. Red rings are the objectives.`:`赤い矢印は、${EN}の予想進路である。黄色の帯はドイツ軍の各部隊が受け持つ防衛線の区域、赤い輪は防衛すべき目標を示す。`):(EN_?'Gold arrows show the direction of the German attack. The red ring is the objective.':'金色の矢印はドイツ軍の攻撃の方向、赤い輪は占領すべき目標を示す。'));
   w.innerHTML=`<p class="vbt">${EN_?'Operations map':'作戦図'}</p><p>${txt}</p><div class="vbl">${brief.arrows.some(a=>a.side==='f'&&!a.tank)?`<span><i class="r"></i>${EN_?'enemy advance':'敵の予想進路'}</span>`:''}${brief.arrows.some(a=>a.side==='g')?`<span><i class="g"></i>${EN_?'our attack':'味方の攻撃の方向'}</span>`:''}${brief.arrows.some(a=>a.tank)?`<span><i class="r d"></i>${EN_?'new weapon':'新しい兵器'}</span>`:''}${brief.zones.length?`<span><i class="y"></i>${EN_?'our sectors':'味方の受け持ち'}</span>`:''}<span><i class="o"></i>${EN_?'objective':'目標'}</span></div><button class="main">${EN_?'Understood — start the battle':'作戦を確認した（戦いを始める）'}</button>`;
   {const A=brief.arrows.filter(a=>a.side==='f');const ay=A.length?A.reduce((t,a)=>t+PX(a.a[0],a.a[1])[1],0)/A.length:0;if(S.mode==='def'&&ay>SH*.45)w.classList.add('top');}   // 敵が下から来るときは、説明を地図の上にかさねて、矢印をかくさない
-  cv.parentNode.appendChild(w);rb(w);w.querySelector('button').onclick=()=>{w.remove();brief.on=false;brief.t=0;tourOn=false;last=performance.now();next();};}
-function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];dustC=[];trc=[];puffC=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
+  (cv.closest('.vwrap')||cv.parentNode).appendChild(w);rb(w);w.querySelector('button').onclick=()=>{w.remove();brief.on=false;brief.t=0;tourOn=false;last=performance.now();next();};}
+function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];gSmoke=[];GFX.clear();RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];dustC=[];trc=[];puffC=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
   const doTour=()=>{if(!tourSeen[O.mode]&&(VD.text.tour||[]).length&&!O.noTour){tourOn=true;setTimeout(()=>{tour(0,go,!!VD.text.tourNewOnly);},250);}else go();};
   if(!O.noBrief){tourOn=true;setTimeout(()=>{root.scrollIntoView({block:'nearest'});showBrief(doTour);},300);}else doTour();}
 // ===== 遠くの砲声：雷鳴のように、遠くで砲声が鳴り続ける =====
@@ -2182,12 +2182,59 @@ function fromClient(cx,cy){const B=stBox();if(!B)return [0,0];let X=cx-B.l,Y=cy-
 function toClient(x,y){const B=stBox();if(!B)return [0,0,1];let X=x*B.w/SW,Y=y*B.h/SH,s=1;
   if(PSP.on){const ox=B.w/2,oy=B.h,yl=Y-oy,sa=Math.sin(B.a);s=B.P/(B.P-yl*sa);X=ox+(X-ox)*s;Y=oy+yl*Math.cos(B.a)*s;}
   return [B.l+X,B.t+Y,s];}
+// ===== 立てて読む文字：部隊の名前・兵員の数・報告の吹き出し・案内の札などは、かたむけずに、正面を向けて描く =====
+//   戦場の画面（かたむける画面）の上に、かたむけない「文字の画面」を重ねる。文字は、かたむけた地図の上の同じ点に置く
+//   地図にかきこんだ地名（地形の絵の中の文字）は、地図といっしょにかたむけたままにする
+const BB={live:false,ov:null,o:null,Z:null,shown:false};
+const BBP=['font','fillStyle','strokeStyle','lineWidth','lineJoin','miterLimit','textAlign','textBaseline','globalAlpha','shadowColor','shadowBlur','shadowOffsetX','shadowOffsetY'];
+function bbBegin(){const st=cv&&cv.parentNode,wr=st&&st.parentNode;
+  if(!PSP.on||!wr){if(BB.shown){BB.o.setTransform(1,0,0,1,0,0);BB.o.clearRect(0,0,BB.ov.width,BB.ov.height);BB.ov.style.display='none';BB.shown=false;}BB.live=false;return;}
+  if(!BB.ov||BB.ov.parentNode!==wr){const c=document.createElement('canvas');c.className='vtxt';c.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:3';wr.appendChild(c);BB.ov=c;BB.o=c.getContext('2d');}
+  const od=Math.min(2,window.devicePixelRatio||1),W=Math.round(wr.clientWidth*od),H=Math.round(wr.clientHeight*od);
+  if(BB.ov.width!==W||BB.ov.height!==H){BB.ov.width=W;BB.ov.height=H;}else{BB.o.setTransform(1,0,0,1,0,0);BB.o.clearRect(0,0,W,H);}
+  BB.ov.style.display='';BB.shown=true;const w=st.offsetWidth,h=st.offsetHeight,a=PSP.angle*Math.PI/180;
+  BB.Z={ox:st.offsetLeft,oy:st.offsetTop,w,h,P:PSP.dist*w,sa:Math.sin(a),ca:Math.cos(a),od,cw:cv.width,ch:cv.height};BB.live=w>0&&h>0;}
+// 戦場の画面の点（ctx の中の今の変形をかけたあとの点）→ 文字の画面の点と、その点での大きさの倍率
+function bbMap(mx,my){const Z=BB.Z,X=mx*Z.w/Z.cw,Y=my*Z.h/Z.ch,ox=Z.w/2,yl=Y-Z.h,s=Z.P/(Z.P-yl*Z.sa);return [Z.ox+ox+(X-ox)*s,Z.oy+Z.h+yl*Z.ca*s,s];}
+//   (ax,ay) を中心にして、そのまわりを、かたむけずに描けるようにした文字の画面を返す。遠近法を切っているときは null
+//   遠くの文字も読めるように、小さくする割合は、地図の半分にとどめる
+function bbAt(ax,ay){if(!BB.live)return null;const M=ctx.getTransform(),mx=M.a*ax+M.c*ay+M.e,my=M.b*ax+M.d*ay+M.f,[X,Y,s]=bbMap(mx,my),Z=BB.Z,k=(1-(1-s)*.5)*Z.w/Z.cw*Z.od;
+  BB.o.setTransform(new DOMMatrix([k,0,0,k,X*Z.od-k*mx,Y*Z.od-k*my]).multiply(M));return BB.o;}
+//   札や吹き出しのように、箱と文字をまとめて立てて描くときに使う（ctx の文字の設定を引きつぐ）
+function bbBox(ax,ay){const o=bbAt(ax,ay);if(!o)return null;o.font=ctx.font;o.textAlign=ctx.textAlign;o.textBaseline=ctx.textBaseline;o.globalAlpha=1;o.setLineDash([]);o.globalCompositeOperation='source-over';return o;}
+//   戦場の画面に書く文字は、すべて文字の画面へ回す
+function bbHook(g){if(g._bb)return;g._bb=true;const F=g.fillText,K=g.strokeText;
+  const go=(fn,t,x,y,mw)=>{const o=BB.o;o.save();for(const p of BBP)o[p]=g[p];bbAt(x,y);fn.call(o,t,x,y,mw);o.restore();};
+  g.fillText=function(t,x,y,mw){if(BB.live)go(F,t,x,y,mw);else F.call(g,t,x,y,mw);};
+  g.strokeText=function(t,x,y,mw){if(BB.live)go(K,t,x,y,mw);else K.call(g,t,x,y,mw);};}
+
+// ===== 野砲の発射：撃った瞬間に砲口から発射の光を出し、そのあと砲身から、うすい煙が立ちのぼる =====
+//   VD.fgun.fxEvery＝戦車を撃ち続けているときに、発射の光を出す間かく（秒）
+const GFX=new Map();let gSmoke=[];
+function gunFx(g,u,dt,mx,my,MZ,a){let q=GFX.get(u.id);if(!q){q={cd:0,was:false,fl:0,wisp:0,wt:0};GFX.set(u.id,q);}
+  q.cd-=dt;const on=u.fire>0&&u.state!=='rout'&&!u.broke,ca=Math.cos(a),sa=Math.sin(a)*VW.sy;
+  if(on&&(!q.was||q.cd<=0)){q.cd=((VD.fgun&&VD.fgun.fxEvery)||3.2)*(.85+Math.random()*.3);q.fl=.24;q.wisp=3;q.wt=0;
+    // 発射の煙：砲口の前へ、ふき出す
+    for(let i=0;i<6;i++)gSmoke.push({x:mx+ca*(3+i*2.5)*MZ,y:my+sa*(3+i*2.5)*MZ,t:-i*.04,life:1.8+Math.random()*.7,vx:ca*(34-i*5)*MZ,vy:sa*(34-i*5)*MZ,r:(6+Math.random()*3)*MZ,gr:16*MZ,up:9*MZ,al:.3});}
+  q.was=on;
+  // 撃ったあと：砲身から、細い煙が立ちのぼる
+  if(q.wisp>0){q.wisp-=dt;q.wt-=dt;if(q.wt<=0){q.wt=.14+Math.random()*.08;gSmoke.push({x:mx-ca*2*MZ+(Math.random()-.5)*MZ,y:my-sa*2*MZ,t:0,life:2.6+Math.random(),vx:(Math.random()-.5)*4*MZ,vy:0,r:3*MZ,gr:9*MZ,up:20*MZ,al:.17*Math.min(1,q.wisp/1.4)});}}
+  // 発射の光
+  if(q.fl>0){q.fl-=dt;const k=Math.max(0,q.fl/.24),R=(20+14*(1-k))*MZ;g.save();g.globalCompositeOperation='lighter';
+    const gr=g.createRadialGradient(mx,my,0,mx,my,R);gr.addColorStop(0,`rgba(255,252,236,${k.toFixed(3)})`);gr.addColorStop(.18,`rgba(255,226,150,${(.95*k).toFixed(3)})`);gr.addColorStop(.45,`rgba(255,170,70,${(.45*k).toFixed(3)})`);gr.addColorStop(1,'rgba(255,130,40,0)');
+    g.fillStyle=gr;g.beginPath();g.arc(mx,my,R,0,6.283);g.fill();
+    g.translate(mx,my);g.rotate(Math.atan2(sa,ca));g.fillStyle=`rgba(255,232,170,${(.85*k).toFixed(3)})`;g.beginPath();g.moveTo(0,-5*MZ);g.quadraticCurveTo((14)*MZ,-4*MZ,(30+12*(1-k))*MZ,0);g.quadraticCurveTo(14*MZ,4*MZ,0,5*MZ);g.closePath();g.fill();g.restore();}}
+function drawGunSmoke(g,dt){if(!gSmoke.length)return;g.save();
+  for(const p of gSmoke){p.t+=dt;if(p.t<0)continue;const d=Math.exp(-2.6*dt);p.vx*=d;p.vy*=d;p.x+=p.vx*dt;p.y+=p.vy*dt-p.up*dt;p.r+=p.gr*dt;
+    const a=p.al*Math.min(1,p.t*6)*Math.max(0,1-p.t/p.life);if(a<=.004)continue;
+    const gr=g.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);gr.addColorStop(0,`rgba(214,212,202,${a.toFixed(3)})`);gr.addColorStop(1,'rgba(214,212,202,0)');g.fillStyle=gr;g.beginPath();g.arc(p.x,p.y,p.r,0,6.283);g.fill();}
+  g.restore();gSmoke=gSmoke.filter(p=>p.t<p.life);if(gSmoke.length>260)gSmoke.splice(0,gSmoke.length-260);}
 
 function start(el,opt){root=el;ambient();O=Object.assign({mode:'atk',units:7,shots:6,enemy:1},opt);loadImgs();
   root.innerHTML=`<div class="vbar"><b class="vtime">残り ${Math.floor(VD.time/60)}分00秒</b><span class="vgoal"></span><span class="vcap"><i></i></span><span class="vcnt"></span></div>
    <p class="vrot">スマホは横向きにすると、地図が大きく見えます。地図を大きく映したときは、部隊のない所を指でなぞると、地図が動きます。</p><div class="vwrap"><div class="vstage" style="position:relative;transform-origin:50% 100%"><canvas class="vcv"></canvas></div><div class="vzoom"><button class="bZin" title="大きく映す">＋</button><span class="vzl">×1</span><button class="bZout" title="小さく映す">－</button></div><div class="vov"></div></div>
    <div class="ucards"></div><div class="vctl"><button class="bArt" disabled>砲撃</button><button class="bGas" disabled>毒ガス弾</button><button class="bChg" disabled>突撃</button><button class="bDug" hidden disabled>地下壕から上げる</button><button class="bMG" disabled>機関銃を置く</button><button class="bMask" disabled>ガスマスクを着ける</button><button class="bAll">全部隊を選ぶ</button><button class="bRef" disabled>補充</button><button class="bEnd">遊ばずに、結果だけ見る</button><button class="bHelp">説明</button><label class="vblood"><input type="checkbox" class="cBlood"> 流血の表現</label><label class="vblood"><input type="checkbox" class="cPersp"> 遠近法</label><label class="vblood vbloom" style="display:none"><input type="checkbox" class="cBloom"> 光のにじみ</label><span class="vsel"></span></div>`;
-  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');if(!ter0)buildTerrain();fresh();
+  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');bbHook(ctx);if(!ter0)buildTerrain();fresh();
   // 砲弾の穴の絵（VART.craters）があれば、読みこめたときに、地形の絵を作りなおす
   if(window.VART&&VART.craters&&!VART.craterPx){VART.craterPx=[];let left=VART.craters.length;const got=[];VART.craters.forEach((src,i)=>{const im=new Image();im.onload=()=>{const n=256,c=document.createElement('canvas');c.width=c.height=n;const q=c.getContext('2d');q.drawImage(im,0,0,n,n);got[i]={n,d:q.getImageData(0,0,n,n).data};if(--left===0){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.onerror=()=>{if(--left===0&&got.some(Boolean)){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.src=src;});}
   if(window.VART&&VART.crew&&!crewIm.g){for(const k of ['g','fr','uk']){const im=new Image();im.onload=()=>{crewIm[k]=im;};im.src=VART.crew.src[k];}}
@@ -2786,7 +2833,7 @@ function hud(){if(!S)return;const left=Math.max(0,VD.time-S.t),g=S.units.filter(
   {const m=$('.bMG');m.textContent=aim==='mg'?'機関銃：設置地点を押す':`機関銃を置く（のこり${S.mgLeft}）`;m.disabled=S.mgLeft<1;m.classList.toggle('on',aim==='mg');}
   const r=$('.bRef');r.textContent=`補充（のこり${S.refills}回）`;r.disabled=S.refills<1;
   const h=hover&&S.units.find(u=>u.id===hover),pc=u=>Math.round(u.men/VD.unitMen*100);
-  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃で制圧するか、歩兵を突入させる')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃で制圧するか、歩兵を突入させる':''}`:h?`${uLabel(h)?uFull(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃はほとんど効かない。砲撃か野砲で阻止する）'+(h.broken?'　故障して停止している':'')):h.gun?(EN_?' field gun':'の野砲（戦車を狙う）'):'の歩兵部隊'}${h.dug?(EN_?(h.dugT>0?' (climbing out of the dugout)':' (in the dugout: safe from shelling, but cannot fire)'):(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃の損害は受けないが、射撃できない）')):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着用中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（当初の${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（後退中）':h.mor<(VD.lowMor||40)?'（士気が低下している）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（散兵壕を掘った）':''}`:sel.size?`${sel.size}部隊を選択中。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したままなぞると、その線に沿って横一列に並ぶ。'}`:'部隊を押して選択する。枠で囲むと、まとめて選択できる。';}
+  $('.vsel').textContent=msgT>0?msg:h&&h.bat?(EN_?'French field guns (75 mm). They shell German units in the open. Shell them or overrun them with infantry.':(VD.text.batHover||'フランス軍の砲兵陣地。砲撃で制圧するか、歩兵を突入させる')):h&&h.mg?`${h.side==='g'?'ドイツ軍':''+EN+''}の機関銃の火点${h.setup>0?'（設置中）':''}　のこり ${Math.round(h.men/VD.mg.men*100)}％${h.side==='f'?'　砲撃で制圧するか、歩兵を突入させる':''}`:h?`${uLabel(h)?uFull(h)+(EN_?' — ':'　'):''}${h.side==='g'?'ドイツ軍':''+EN+''}${h.tank?(EN_?' tank (rifles and machine guns have little effect; stop it with artillery)':'の戦車（小銃と機関銃はほとんど効かない。砲撃か野砲で阻止する）'+(h.broken?'　故障して停止している':'')):h.gun?(EN_?' field gun':'の野砲（戦車を狙う）'):'の歩兵部隊'}${h.dug?(h.dugT>0?'（地下壕から上がる途中）':'（地下壕の中。砲撃の損害は受けないが、射撃できない）'):''}${h.melee?'（白兵戦）':h.dep?'（塹壕の中）':''}${h.mask?(h.maskT<VD.gas.don?'（ガスマスクを着用中）':'（ガスマスク）'):''}${h.inGas&&!h.mask?'（ガスの中）':''}　${h.tank||h.gun?'':MS?(EN_?`${fmt(ppl(h.men))} men (${pc(h)}% of start)`:`兵員 ${fmt(ppl(h.men))}人（当初の${pc(h)}％）`):`兵力 ${pc(h)}％`}　士気 ${Math.round(h.mor)}${h.top&&h.top<100&&h.state!=='rout'?`／上限${Math.round(h.top)}`:''}${h.state==='rout'?'（後退中）':h.mor<(VD.lowMor||40)?'（士気が低下している）':''}${VD.digIn&&(h.dig||0)>=VD.digIn.t?'（散兵壕を掘った）':''}`:sel.size?`${sel.size}部隊を選択中。行き先・塹壕・敵の部隊を押す。${lastTouch?'地図を指でなぞると、その線に横一列に並ぶ。':'右ボタンを押したままなぞると、その線に沿って横一列に並ぶ。'}`:'部隊を押して選択する。枠で囲むと、まとめて選択できる。';}
 // 機関銃の火点を描く：土のうの半円と、銃。向きは、撃っている相手のほう。置いたばかりの火点は、うすく描く
 function drawMG(u,dt){if(u.gun||u.bat)return drawGun(u,dt);const g=ctx,gs=u.side==='g',hv=hover===u.id,MZ=.45+.5*UZ,[px,py]=PX(u.x,u.y),set=u.setup>0;face(u,dt);
   g.save();g.translate(px,py);g.scale(MZ,MZ);if(set)g.globalAlpha=.55;g.fillStyle='rgba(20,23,15,.4)';g.strokeStyle=hv?'#fff':gs?'rgba(232,195,79,.9)':'rgba(140,170,235,.95)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,14,10,0,0,6.283);g.fill();g.stroke();
@@ -2809,16 +2856,16 @@ function report(u,kind,lv){const T=((S.mode==='atk'&&VD.text.repAtk)||{})[kind]|
 function clock(){const m=Math.floor((VD.clock0||450)+S.t*(VD.clockK||2.4)),h=Math.floor(m/60)%24,dd=VD.clockDay0?VD.clockDay0+Math.floor(m/1440):0;return EN_?(dd?`${dd} Sep ${h}:`:h+':')+String(m%60).padStart(2,'0'):(dd?dd+'日 ':'')+h+'時'+String(m%60).padStart(2,'0')+'分';}   // ゲームの中の時刻（VD.clock0＝始まりの時刻を0時からの分で、VD.clockK＝1秒が何分か）
 // 吹き出し：報告した部隊の上に、小さな文字で出す。RP.life 秒たつと消える。近くの吹き出しと重なるときは、上にずらす
 function wrapText(g,t,W){const L=[];let line='';for(const ch of t){if(g.measureText(line+ch).width>W&&line){L.push(line);line=/[、。！？）」]/.test(ch)?'':ch;if(line==='')L[L.length-1]+=ch;}else line+=ch;}if(line)L.push(line);return L;}
-function drawBubbles(){if(!S||!RP.list.length)return;const g=ctx,life=VD.repLife||7,z=Math.max(1,zoom),fs=10/Math.sqrt(z),pad=3.5/Math.sqrt(z),W=150/Math.sqrt(z),lh=fs*1.3,boxes=[];
+function drawBubbles(){if(!S||!RP.list.length)return;let g=ctx;const life=VD.repLife||7,z=Math.max(1,zoom),fs=10/Math.sqrt(z),pad=3.5/Math.sqrt(z),W=150/Math.sqrt(z),lh=fs*1.3,boxes=[];
   RP.list=RP.list.filter(r=>S.t-r.t<life);g.save();g.font=`700 ${fs}px "BIZ UDPGothic",sans-serif`;g.textAlign='left';g.textBaseline='top';
-  for(const r of RP.list.slice().reverse()){const u=S.units.find(q=>q.id===r.id);if(u){r.x=u.x;r.y=u.y;}const p=PX(r.x,r.y),L=wrapText(g,r.txt,W),w=Math.max(...L.map(l=>g.measureText(l).width))+pad*2+3,h=L.length*lh+pad*2;
+  for(const r of RP.list.slice().reverse()){const u=S.units.find(q=>q.id===r.id);if(u){r.x=u.x;r.y=u.y;}const p=PX(r.x,r.y),L=(g=bbBox(p[0],p[1])||ctx,wrapText(g,r.txt,W)),w=Math.max(...L.map(l=>g.measureText(l).width))+pad*2+3,h=L.length*lh+pad*2;
     let x=p[0]-w/2,y=Math.max(camY+4/z,p[1]-46/Math.sqrt(z)-h);for(let k=0;k<6;k++){const hit=boxes.find(b=>x<b[0]+b[2]&&x+w>b[0]&&y<b[1]+b[3]&&y+h>b[1]);if(!hit)break;y=hit[1]-h-3;}boxes.push([x,y,w,h]);
     const age=S.t-r.t,a=Math.min(1,age*4,(life-age)/1.2);g.globalAlpha=Math.max(0,a);
     g.fillStyle=r.lv>=2?'rgba(52,16,13,.88)':'rgba(18,20,17,.84)';g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,3);else g.rect(x,y,w,h);g.fill();
     g.beginPath();g.moveTo(p[0]-4,y+h);g.lineTo(p[0]+4,y+h);g.lineTo(p[0],y+h+5);g.fill();
     g.fillStyle=r.lv>=2?'#d9493b':r.lv===1?'#e0b25a':'#7da86a';g.fillRect(x,y,2.5,h);
     g.fillStyle='#f3ead2';L.forEach((l,i)=>g.fillText(l,x+pad+3,y+pad+i*lh));}
-  g.restore();}
+  ctx.restore();}
 function drawRep(){if(!RP.box)return;RP.box.innerHTML=RP.list.map((r,i)=>`<button class="lv${r.lv}" data-id="${r.id}" style="opacity:${i?Math.max(.45,1-i*.18):1}"><small>${r.clock}　${EN_?"from the "+r.from:r.from+"より"}</small>${r.txt}</button>`).join('');}
 function reportTick(){
   const k=Math.floor(S.t);if(k===RP.k)return;RP.k=k;   // 1秒に1回だけ調べる
@@ -2899,9 +2946,9 @@ function drawDug(u){const g=ctx,[px,py]=PX(u.x,u.y),on=sel.has(u.id),hv=hover===
 // 野砲：車輪2つと、長い砲身と、盾。戦車をねらっているときは、砲身をそちらへ向ける
 function drawGun(u,dt){const g=ctx,hv=hover===u.id,MZ=.5+.5*UZ,[px,py]=PX(u.x,u.y);face(u,dt);const GI=gunIm[u.side];
   if(GI){const G=VART.guns,th=Math.PI-(u.fa||0);let k=Math.round(th/(Math.PI/8));k=((k%16)+16)%16;const s=G.size*MZ;g.save();g.strokeStyle=hv?'#fff':u.side==='f'?'rgba(127,159,216,.8)':'rgba(232,195,79,.8)';g.lineWidth=hv?2:1.2;g.beginPath();g.ellipse(px,py,15*MZ,10*MZ,0,0,6.283);g.stroke();
-    g.drawImage(GI,k*G.s,0,G.s,G.s,px-s/2,py-s/2,s,s);if(u.fire>0){g.fillStyle='rgba(255,220,150,.85)';const a=u.fa||0;g.beginPath();g.arc(px+Math.cos(a)*s*.42,py+Math.sin(a)*s*.42*VW.sy-3*MZ,3.5*MZ,0,6.283);g.fill();}g.restore();}
+    g.drawImage(GI,k*G.s,0,G.s,G.s,px-s/2,py-s/2,s,s);{const a=u.fa||0;gunFx(g,u,dt,px+Math.cos(a)*s*.42,py+Math.sin(a)*s*.42*VW.sy-3*MZ,MZ,a);}g.restore();}
   else{g.save();g.translate(px,py);g.scale(MZ,MZ);g.fillStyle='rgba(20,23,15,.45)';g.strokeStyle=hv?'#fff':u.side==='f'?'rgba(127,159,216,.95)':'rgba(232,195,79,.9)';g.lineWidth=hv?2.2:1.4;g.beginPath();g.ellipse(0,0,16,11,0,0,6.283);g.fill();g.stroke();
-  g.rotate(Math.atan2(Math.sin(u.fa)*VW.sy,Math.cos(u.fa)));g.strokeStyle='#1e1d19';g.lineWidth=3;g.beginPath();g.moveTo(-9,0);g.lineTo(14,0);g.stroke();g.fillStyle='#5d5a47';g.fillRect(-3,-7,3,14);g.fillStyle='#2b2a25';for(const yy of [-7.5,7.5]){g.beginPath();g.ellipse(-4,yy,4.2,2.2,0,0,6.283);g.fill();}g.strokeStyle='#3b3a33';g.lineWidth=2;g.beginPath();g.moveTo(-5,0);g.lineTo(-14,0);g.stroke();g.restore();}
+  g.rotate(Math.atan2(Math.sin(u.fa)*VW.sy,Math.cos(u.fa)));g.strokeStyle='#1e1d19';g.lineWidth=3;g.beginPath();g.moveTo(-9,0);g.lineTo(14,0);g.stroke();g.fillStyle='#5d5a47';g.fillRect(-3,-7,3,14);g.fillStyle='#2b2a25';for(const yy of [-7.5,7.5]){g.beginPath();g.ellipse(-4,yy,4.2,2.2,0,0,6.283);g.fill();}g.strokeStyle='#3b3a33';g.lineWidth=2;g.beginPath();g.moveTo(-5,0);g.lineTo(-14,0);g.stroke();g.restore();{const a=u.fa||0;gunFx(g,u,dt,px+Math.cos(a)*14*MZ,py+Math.sin(a)*14*MZ*VW.sy,MZ,a);}}
   const w=18,x0=px-w/2,y0=py-14*MZ-4;g.fillStyle='#14170fcc';g.fillRect(x0-1,y0-1,w+2,4.4);g.fillStyle=u.side==='f'?'#7f9fd8':'#e8c34f';g.fillRect(x0,y0,w*u.men/VD.mg.men,2.4);
   const nm=u.bat?(EN_?'French 75 guns':(VD.text.batName||'砲兵')):EN_?'field gun':'野砲';g.font='700 9px "BIZ UDPGothic",sans-serif';g.textAlign='center';g.lineWidth=2.5;g.strokeStyle='#14170fcc';g.fillStyle='#f1ead6';g.strokeText(nm,px,py+12*MZ+9);g.fillText(nm,px,py+12*MZ+9);}
 // 戦車：8つの向きの絵から、いちばん近い向きを選んで描く。故障した戦車は、灰色にして煙を出す
@@ -2941,10 +2988,10 @@ function drawForm(g,d){const a=ground(d.x,d.y),b=ground(d.x2,d.y2),L=S.units.fil
     g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.stroke();const an=Math.atan2(q[1]-p[1],q[0]-p[0]);g.beginPath();g.moveTo(q[0]+Math.cos(an)*5,q[1]+Math.sin(an)*5);g.lineTo(q[0]+Math.cos(an+2.4)*7,q[1]+Math.sin(an+2.4)*7);g.lineTo(q[0]+Math.cos(an-2.4)*7,q[1]+Math.sin(an-2.4)*7);g.closePath();g.fillStyle='#ffd65a';g.fill();}
   g.restore();}
 // マウスのそばに、いまできることを、絵と言葉で出す（例：塹壕に突入する）
-function drawHint(H){const g=ctx;if(!H||!mouse)return;
+function drawHint(H){let g=ctx;if(!H||!mouse)return;
   // 塹壕：部隊が入る所を、明るい線で示す
   if(H.k==='trench'){let L=0;for(const u of S.units)if(sel.has(u.id))L+=VSim.depLen(u);const TL=VSim.trenchLen(H.q.i),a=Math.max(0,H.q.s-L/2),b=Math.min(TL,H.q.s+L/2);g.lineCap='round';g.strokeStyle='rgba(255,214,90,.85)';g.lineWidth=3;g.setLineDash([6,4]);g.beginPath();for(let q=a;;q+=8){const t=VSim.trenchPt(H.q.i,Math.min(q,b)),p=PX(t[0],t[1]);q===a?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1]);if(q>=b)break;}g.stroke();g.setLineDash([]);}
-  g.font='700 12px "BIZ UDPGothic","BIZ UDPゴシック",sans-serif';const tw=g.measureText(H.t).width,bw=tw+34,bh=24;let x=mouse[0]+14,y=mouse[1]-bh-8;if(x+bw>camX+SW/zoom-4)x=mouse[0]-bw-14;if(y<camY+4)y=mouse[1]+14;
+  g=bbBox(mouse[0],mouse[1])||ctx;g.font='700 12px "BIZ UDPGothic","BIZ UDPゴシック",sans-serif';const tw=g.measureText(H.t).width,bw=tw+34,bh=24;let x=mouse[0]+14,y=mouse[1]-bh-8;if(x+bw>camX+SW/zoom-4)x=mouse[0]-bw-14;if(y<camY+4)y=mouse[1]+14;
   const red=H.k==='melee'||H.k==='mg'||(H.k==='trench'&&H.t.length>8);g.fillStyle='rgba(20,23,15,.9)';g.strokeStyle=red?'#ff8f80':'#ffd65a';g.lineWidth=1.5;g.beginPath();if(g.roundRect)g.roundRect(x,y,bw,bh,5);else g.rect(x,y,bw,bh);g.fill();g.stroke();
   // 絵：塹壕に入りこむ矢印／攻める矢印
   const ix=x+14,iy=y+12,c=red?'#ff8f80':'#ffd65a';g.strokeStyle=c;g.fillStyle=c;g.lineWidth=1.8;g.lineJoin=g.lineCap='round';
@@ -2957,7 +3004,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   if(!S.over&&!tourOn){VSim.tick(S,dt);if(S.note){say(S.note);S.note=null;}if((S.arrived||0)>(S.arrSaid||0)){S.arrSaid=S.arrived;if(!S.arrT||S.t-S.arrT>4){S.arrT=S.t;say(EN_?'Reinforcements have arrived. Select them and give them orders.':(VD.text.reinfNote||'援軍が到着した。部隊を選んで命令を出す。'));snd('whistle',3);}}if(S.units.some(u=>u.fire&&!u.mg))snd('rifle',2.2);if(S.units.some(u=>u.fire&&u.mg))snd('mg',1.3);}
   // 重い端末では、兵士の絵を1人おきに描く
   slow=slow*.95+dt*1000*.05;if(slow>34&&skip<2)skip=2;if(msgT>0){msgT-=dt;}if(flash){flash.t-=dt;if(flash.t<=0)flash=null;}
-  const g=ctx,SY=VW.sy,ring=(x,y,r)=>{const p=PX(x,y);g.beginPath();g.ellipse(p[0],p[1],r,r*SY,0,0,6.283);};
+  bbBegin();const g=ctx,SY=VW.sy,ring=(x,y,r)=>{const p=PX(x,y);g.beginPath();g.ellipse(p[0],p[1],r,r*SY,0,0,6.283);};
   // マウスが画面のはしにあるとき（大きく映しているとき）は、地図を動かす
   if(zoom>1&&(keys.a||keys.d||keys.w||keys.s)){const v=420*dt/zoom;pan((keys.d?v:0)-(keys.a?v:0),(keys.s?v:0)-(keys.w?v:0));}
   if(mraw)mouse=[mraw[0]/zoom+camX,mraw[1]/zoom+camY];
@@ -2990,7 +3037,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
     if(f.mine){const q=f.t/3.2,sc=f.mine*(.8+.5*UZ);
       if(f.t<.3){g.fillStyle=`rgba(255,248,230,${(.45*(1-f.t/.3)).toFixed(2)})`;g.fillRect(-4000,-4000,9000,9000);}
       for(const dl of [0,.35]){const qq=(f.t-dl)/1.4;if(qq>0&&qq<1){g.strokeStyle=`rgba(255,236,200,${(.85*(1-qq)).toFixed(2)})`;g.lineWidth=3.5*(1-qq)+1;g.beginPath();g.ellipse(p[0],p[1],(14+qq*150)*sc,(14+qq*150)*sc*VW.sy,0,0,6.283);g.stroke();}}
-      if(f.t<4&&f.nm){const a=Math.min(1,(4-f.t)/.6),t=(EN_?'Mine: ':'地雷の爆発：')+f.nm;g.save();g.globalAlpha=a;g.font='700 15px "BIZ UDPGothic",sans-serif';const tw=g.measureText(t).width,bx=Math.max(4,Math.min(SW-tw-20,p[0]-tw/2-8)),by=Math.max(4,p[1]-150*sc-26);
+      if(f.t<4&&f.nm){const a=Math.min(1,(4-f.t)/.6),t=(EN_?'Mine: ':'地雷の爆発：')+f.nm;const g=bbBox(p[0],p[1])||ctx;g.save();g.globalAlpha=a;g.font='700 15px "BIZ UDPGothic",sans-serif';const tw=g.measureText(t).width,bx=Math.max(4,Math.min(SW-tw-20,p[0]-tw/2-8)),by=Math.max(4,p[1]-150*sc-26);
         g.fillStyle='rgba(122,24,18,.92)';g.fillRect(bx,by,tw+16,24);g.strokeStyle='#ffd9a0';g.lineWidth=1.5;g.strokeRect(bx,by,tw+16,24);g.fillStyle='#fff3e0';g.textAlign='center';g.textBaseline='middle';g.fillText(t,bx+tw/2+8,by+12.5);g.textBaseline='alphabetic';
         g.strokeStyle='rgba(255,217,160,.9)';g.beginPath();g.moveTo(p[0],by+24);g.lineTo(p[0],p[1]-8);g.stroke();g.restore();}
       if(q<1){const H=(40+Math.sqrt(q)*170)*sc,Wd=(16+q*40)*sc,top=p[1]-H*(q<.5?1:1-(q-.5)*.6);
@@ -3026,7 +3073,7 @@ function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-
   if(S.units.some(u=>u.melee))snd('melee',2.6);
   // 銃撃と砲撃の効果（three.quarks が使えるとき）。位置は、画面の位置に直して渡す
   if(vfx){for(const u of S.units){const v=u.fire&&u.state!=='rout'?S.units.find(q=>q.id===u.aim):null,hw=u.mg?2:size(u)[0]-4,a=(u.fa||0)+Math.PI/2,lx=Math.cos(a),ly=Math.sin(a)*SY,pu=PX(u.x,u.y),pv=v?PX(v.x,v.y):[0,0];vfx.fire(u.id,pu[0],pu[1]-6,pv[0],pv[1]-6,!!v,hw*hyp(lx,ly),Math.atan2(ly,lx),u.mg?VD.fx.mgRate:1);}if(vfx.view)vfx.view(camX,camY,zoom);vfx.update(dt,S.units);}
-  drawTracers(g,dt);
+  drawGunSmoke(g,dt);drawTracers(g,dt);
   // 砲撃・機関銃を置く所の目安：マウスの下の地面に、輪を出す
   if(aim&&gm&&mouse){const ok=aim!=='mg'||S.units.some(u=>u.side==='g'&&!u.mg&&u.state!=='rout'&&hyp(u.x-gm[0],u.y-gm[1])<VD.mg.placeR);g.strokeStyle=aim==='gas'?'#c9e06a':ok?'#ffd65a':'#ff6b5c';g.lineWidth=1.6;g.setLineDash([5,4]);ring(gm[0],gm[1],aim==='art'?VD.art.r:aim==='gas'?VD.gas.r:VD.mg.range);g.stroke();g.setLineDash([]);if(aim==='mg'){g.fillStyle=ok?'#ffd65a':'#ff6b5c';ring(gm[0],gm[1],4);g.fill();}}
   // 方位：地図の上が北でない戦いでは、北の向きを矢印で示す
@@ -3125,8 +3172,8 @@ function showBrief(next){brief=makeBrief();const T=VD.text.brief||{},EN2=EN;cons
   tourOn=true;const w=document.createElement('div');w.className='vbrief';const txt=T[S.mode]||(S.mode==='def'?(EN_?`Red arrows show where the enemy is expected to advance. Yellow areas are the sectors each German unit holds. Red rings are the objectives.`:`赤い矢印は、${EN}の予想進路である。黄色の帯はドイツ軍の各部隊が受け持つ防衛線の区域、赤い輪は防衛すべき目標を示す。`):(EN_?'Gold arrows show the direction of the German attack. The red ring is the objective.':'金色の矢印はドイツ軍の攻撃の方向、赤い輪は占領すべき目標を示す。'));
   w.innerHTML=`<p class="vbt">${EN_?'Operations map':'作戦図'}</p><p>${txt}</p><div class="vbl">${brief.arrows.some(a=>a.side==='f'&&!a.tank)?`<span><i class="r"></i>${EN_?'enemy advance':'敵の予想進路'}</span>`:''}${brief.arrows.some(a=>a.side==='g')?`<span><i class="g"></i>${EN_?'our attack':'味方の攻撃の方向'}</span>`:''}${brief.arrows.some(a=>a.tank)?`<span><i class="r d"></i>${EN_?'new weapon':'新しい兵器'}</span>`:''}${brief.zones.length?`<span><i class="y"></i>${EN_?'our sectors':'味方の受け持ち'}</span>`:''}<span><i class="o"></i>${EN_?'objective':'目標'}</span></div><button class="main">${EN_?'Understood — start the battle':'作戦を確認した（戦いを始める）'}</button>`;
   {const A=brief.arrows.filter(a=>a.side==='f');const ay=A.length?A.reduce((t,a)=>t+PX(a.a[0],a.a[1])[1],0)/A.length:0;if(S.mode==='def'&&ay>SH*.45)w.classList.add('top');}   // 敵が下から来るときは、説明を地図の上にかさねて、矢印をかくさない
-  cv.parentNode.appendChild(w);rb(w);w.querySelector('button').onclick=()=>{w.remove();brief.on=false;brief.t=0;tourOn=false;last=performance.now();next();};}
-function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];dustC=[];trc=[];puffC=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
+  (cv.closest('.vwrap')||cv.parentNode).appendChild(w);rb(w);w.querySelector('button').onclick=()=>{w.remove();brief.on=false;brief.t=0;tourOn=false;last=performance.now();next();};}
+function begin(){$('.vov').hidden=true;zoom=1;camX=camY=0;setZoom(1);S=VSim.make(O.mode,O);fresh();shake=0;fxcv=null;sel.clear();brief=null;{const ob=root.querySelector('.vbrief');if(ob)ob.remove();}tankWrecks=[];gSmoke=[];GFX.clear();RP.list=[];RP.st=new Map();RP.last=-99;RP.box&&(RP.box.innerHTML='');craters=[];dustC=[];trc=[];puffC=[];bodies=[];prevU=[];hover=null;flash=null;msgT=0;aim='';ended=false;tsec=0;last=performance.now();overT=0;hud();cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);const go=()=>{if(window.Bgm)Bgm.play('verdun');snd('whistle');};
   const doTour=()=>{if(!tourSeen[O.mode]&&(VD.text.tour||[]).length&&!O.noTour){tourOn=true;setTimeout(()=>{tour(0,go,!!VD.text.tourNewOnly);},250);}else go();};
   if(!O.noBrief){tourOn=true;setTimeout(()=>{root.scrollIntoView({block:'nearest'});showBrief(doTour);},300);}else doTour();}
 // ===== 遠くの砲声：雷鳴のように、遠くで砲声が鳴り続ける =====
@@ -3174,12 +3221,59 @@ function fromClient(cx,cy){const B=stBox();if(!B)return [0,0];let X=cx-B.l,Y=cy-
 function toClient(x,y){const B=stBox();if(!B)return [0,0,1];let X=x*B.w/SW,Y=y*B.h/SH,s=1;
   if(PSP.on){const ox=B.w/2,oy=B.h,yl=Y-oy,sa=Math.sin(B.a);s=B.P/(B.P-yl*sa);X=ox+(X-ox)*s;Y=oy+yl*Math.cos(B.a)*s;}
   return [B.l+X,B.t+Y,s];}
+// ===== 立てて読む文字：部隊の名前・兵員の数・報告の吹き出し・案内の札などは、かたむけずに、正面を向けて描く =====
+//   戦場の画面（かたむける画面）の上に、かたむけない「文字の画面」を重ねる。文字は、かたむけた地図の上の同じ点に置く
+//   地図にかきこんだ地名（地形の絵の中の文字）は、地図といっしょにかたむけたままにする
+const BB={live:false,ov:null,o:null,Z:null,shown:false};
+const BBP=['font','fillStyle','strokeStyle','lineWidth','lineJoin','miterLimit','textAlign','textBaseline','globalAlpha','shadowColor','shadowBlur','shadowOffsetX','shadowOffsetY'];
+function bbBegin(){const st=cv&&cv.parentNode,wr=st&&st.parentNode;
+  if(!PSP.on||!wr){if(BB.shown){BB.o.setTransform(1,0,0,1,0,0);BB.o.clearRect(0,0,BB.ov.width,BB.ov.height);BB.ov.style.display='none';BB.shown=false;}BB.live=false;return;}
+  if(!BB.ov||BB.ov.parentNode!==wr){const c=document.createElement('canvas');c.className='vtxt';c.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:3';wr.appendChild(c);BB.ov=c;BB.o=c.getContext('2d');}
+  const od=Math.min(2,window.devicePixelRatio||1),W=Math.round(wr.clientWidth*od),H=Math.round(wr.clientHeight*od);
+  if(BB.ov.width!==W||BB.ov.height!==H){BB.ov.width=W;BB.ov.height=H;}else{BB.o.setTransform(1,0,0,1,0,0);BB.o.clearRect(0,0,W,H);}
+  BB.ov.style.display='';BB.shown=true;const w=st.offsetWidth,h=st.offsetHeight,a=PSP.angle*Math.PI/180;
+  BB.Z={ox:st.offsetLeft,oy:st.offsetTop,w,h,P:PSP.dist*w,sa:Math.sin(a),ca:Math.cos(a),od,cw:cv.width,ch:cv.height};BB.live=w>0&&h>0;}
+// 戦場の画面の点（ctx の中の今の変形をかけたあとの点）→ 文字の画面の点と、その点での大きさの倍率
+function bbMap(mx,my){const Z=BB.Z,X=mx*Z.w/Z.cw,Y=my*Z.h/Z.ch,ox=Z.w/2,yl=Y-Z.h,s=Z.P/(Z.P-yl*Z.sa);return [Z.ox+ox+(X-ox)*s,Z.oy+Z.h+yl*Z.ca*s,s];}
+//   (ax,ay) を中心にして、そのまわりを、かたむけずに描けるようにした文字の画面を返す。遠近法を切っているときは null
+//   遠くの文字も読めるように、小さくする割合は、地図の半分にとどめる
+function bbAt(ax,ay){if(!BB.live)return null;const M=ctx.getTransform(),mx=M.a*ax+M.c*ay+M.e,my=M.b*ax+M.d*ay+M.f,[X,Y,s]=bbMap(mx,my),Z=BB.Z,k=(1-(1-s)*.5)*Z.w/Z.cw*Z.od;
+  BB.o.setTransform(new DOMMatrix([k,0,0,k,X*Z.od-k*mx,Y*Z.od-k*my]).multiply(M));return BB.o;}
+//   札や吹き出しのように、箱と文字をまとめて立てて描くときに使う（ctx の文字の設定を引きつぐ）
+function bbBox(ax,ay){const o=bbAt(ax,ay);if(!o)return null;o.font=ctx.font;o.textAlign=ctx.textAlign;o.textBaseline=ctx.textBaseline;o.globalAlpha=1;o.setLineDash([]);o.globalCompositeOperation='source-over';return o;}
+//   戦場の画面に書く文字は、すべて文字の画面へ回す
+function bbHook(g){if(g._bb)return;g._bb=true;const F=g.fillText,K=g.strokeText;
+  const go=(fn,t,x,y,mw)=>{const o=BB.o;o.save();for(const p of BBP)o[p]=g[p];bbAt(x,y);fn.call(o,t,x,y,mw);o.restore();};
+  g.fillText=function(t,x,y,mw){if(BB.live)go(F,t,x,y,mw);else F.call(g,t,x,y,mw);};
+  g.strokeText=function(t,x,y,mw){if(BB.live)go(K,t,x,y,mw);else K.call(g,t,x,y,mw);};}
+
+// ===== 野砲の発射：撃った瞬間に砲口から発射の光を出し、そのあと砲身から、うすい煙が立ちのぼる =====
+//   VD.fgun.fxEvery＝戦車を撃ち続けているときに、発射の光を出す間かく（秒）
+const GFX=new Map();let gSmoke=[];
+function gunFx(g,u,dt,mx,my,MZ,a){let q=GFX.get(u.id);if(!q){q={cd:0,was:false,fl:0,wisp:0,wt:0};GFX.set(u.id,q);}
+  q.cd-=dt;const on=u.fire>0&&u.state!=='rout'&&!u.broke,ca=Math.cos(a),sa=Math.sin(a)*VW.sy;
+  if(on&&(!q.was||q.cd<=0)){q.cd=((VD.fgun&&VD.fgun.fxEvery)||3.2)*(.85+Math.random()*.3);q.fl=.24;q.wisp=3;q.wt=0;
+    // 発射の煙：砲口の前へ、ふき出す
+    for(let i=0;i<6;i++)gSmoke.push({x:mx+ca*(3+i*2.5)*MZ,y:my+sa*(3+i*2.5)*MZ,t:-i*.04,life:1.8+Math.random()*.7,vx:ca*(34-i*5)*MZ,vy:sa*(34-i*5)*MZ,r:(6+Math.random()*3)*MZ,gr:16*MZ,up:9*MZ,al:.3});}
+  q.was=on;
+  // 撃ったあと：砲身から、細い煙が立ちのぼる
+  if(q.wisp>0){q.wisp-=dt;q.wt-=dt;if(q.wt<=0){q.wt=.14+Math.random()*.08;gSmoke.push({x:mx-ca*2*MZ+(Math.random()-.5)*MZ,y:my-sa*2*MZ,t:0,life:2.6+Math.random(),vx:(Math.random()-.5)*4*MZ,vy:0,r:3*MZ,gr:9*MZ,up:20*MZ,al:.17*Math.min(1,q.wisp/1.4)});}}
+  // 発射の光
+  if(q.fl>0){q.fl-=dt;const k=Math.max(0,q.fl/.24),R=(20+14*(1-k))*MZ;g.save();g.globalCompositeOperation='lighter';
+    const gr=g.createRadialGradient(mx,my,0,mx,my,R);gr.addColorStop(0,`rgba(255,252,236,${k.toFixed(3)})`);gr.addColorStop(.18,`rgba(255,226,150,${(.95*k).toFixed(3)})`);gr.addColorStop(.45,`rgba(255,170,70,${(.45*k).toFixed(3)})`);gr.addColorStop(1,'rgba(255,130,40,0)');
+    g.fillStyle=gr;g.beginPath();g.arc(mx,my,R,0,6.283);g.fill();
+    g.translate(mx,my);g.rotate(Math.atan2(sa,ca));g.fillStyle=`rgba(255,232,170,${(.85*k).toFixed(3)})`;g.beginPath();g.moveTo(0,-5*MZ);g.quadraticCurveTo((14)*MZ,-4*MZ,(30+12*(1-k))*MZ,0);g.quadraticCurveTo(14*MZ,4*MZ,0,5*MZ);g.closePath();g.fill();g.restore();}}
+function drawGunSmoke(g,dt){if(!gSmoke.length)return;g.save();
+  for(const p of gSmoke){p.t+=dt;if(p.t<0)continue;const d=Math.exp(-2.6*dt);p.vx*=d;p.vy*=d;p.x+=p.vx*dt;p.y+=p.vy*dt-p.up*dt;p.r+=p.gr*dt;
+    const a=p.al*Math.min(1,p.t*6)*Math.max(0,1-p.t/p.life);if(a<=.004)continue;
+    const gr=g.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);gr.addColorStop(0,`rgba(214,212,202,${a.toFixed(3)})`);gr.addColorStop(1,'rgba(214,212,202,0)');g.fillStyle=gr;g.beginPath();g.arc(p.x,p.y,p.r,0,6.283);g.fill();}
+  g.restore();gSmoke=gSmoke.filter(p=>p.t<p.life);if(gSmoke.length>260)gSmoke.splice(0,gSmoke.length-260);}
 
 function start(el,opt){root=el;ambient();O=Object.assign({mode:'atk',units:7,shots:6,enemy:1},opt);loadImgs();
   root.innerHTML=`<div class="vbar"><b class="vtime">残り ${Math.floor(VD.time/60)}分00秒</b><span class="vgoal"></span><span class="vcap"><i></i></span><span class="vcnt"></span></div>
    <p class="vrot">スマホは横向きにすると、地図が大きく見えます。地図を大きく映したときは、部隊のない所を指でなぞると、地図が動きます。</p><div class="vwrap"><div class="vstage" style="position:relative;transform-origin:50% 100%"><canvas class="vcv"></canvas></div><div class="vzoom"><button class="bZin" title="大きく映す">＋</button><span class="vzl">×1</span><button class="bZout" title="小さく映す">－</button></div><div class="vov"></div></div>
    <div class="ucards"></div><div class="vctl"><button class="bArt" disabled>砲撃</button><button class="bGas" disabled>毒ガス弾</button><button class="bChg" disabled>突撃</button><button class="bDug" hidden disabled>地下壕から上げる</button><button class="bMG" disabled>機関銃を置く</button><button class="bMask" disabled>ガスマスクを着ける</button><button class="bAll">全部隊を選ぶ</button><button class="bRef" disabled>補充</button><button class="bEnd">遊ばずに、結果だけ見る</button><button class="bHelp">説明</button><label class="vblood"><input type="checkbox" class="cBlood"> 流血の表現</label><label class="vblood"><input type="checkbox" class="cPersp"> 遠近法</label><label class="vblood vbloom" style="display:none"><input type="checkbox" class="cBloom"> 光のにじみ</label><span class="vsel"></span></div>`;
-  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');if(!ter0)buildTerrain();fresh();
+  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');bbHook(ctx);if(!ter0)buildTerrain();fresh();
   // 砲弾の穴の絵（VART.craters）があれば、読みこめたときに、地形の絵を作りなおす
   if(window.VART&&VART.craters&&!VART.craterPx){VART.craterPx=[];let left=VART.craters.length;const got=[];VART.craters.forEach((src,i)=>{const im=new Image();im.onload=()=>{const n=256,c=document.createElement('canvas');c.width=c.height=n;const q=c.getContext('2d');q.drawImage(im,0,0,n,n);got[i]={n,d:q.getImageData(0,0,n,n).data};if(--left===0){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.onerror=()=>{if(--left===0&&got.some(Boolean)){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.src=src;});}
   if(window.VART&&VART.crew&&!crewIm.g){for(const k of ['g','fr','uk']){const im=new Image();im.onload=()=>{crewIm[k]=im;};im.src=VART.crew.src[k];}}
