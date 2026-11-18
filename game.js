@@ -2163,9 +2163,9 @@ function barrSound(b){if(b.gun){snd('cannon');return;}if(!window.Snd||!Snd.dista
 // ===== 遠近法：戦場の画面を、奥へ少しかたむけて見せる（遠くが小さく、近くが大きく見える） =====
 //   画面そのものの描き方は変えず、画面（と効果の画面）をまとめて、CSS の立体の変形で奥へかたむける。
 //   マウスや指の位置は、かたむけた分をもどして、画面のめもりに直す。数字は VD.view.persp で変えられる：angle＝かたむける角度（度）、dist＝見る距離（画面の幅の何倍か）
-//   画面の下の「遠近法」のチェックで、入／切できる（端末に覚えさせる）
-const PSP=Object.assign({on:true,angle:24,dist:1.15},(VD.view&&VD.view.persp)||{});
-try{const v=localStorage.getItem('vd_persp');if(v!==null)PSP.on=v==='1';}catch(e){}
+//   はじめは見下ろしの画面（遠近法は切）。画面の下の「遠近法」のチェックを入れると遠近法になる（端末に覚えさせる）
+const PSP=Object.assign({on:false,angle:24,dist:1.15},(VD.view&&VD.view.persp)||{});
+try{const v=localStorage.getItem('vd_persp2');if(v!==null)PSP.on=v==='1';}catch(e){}
 // かたむける前の画面の箱（ページの上の位置と大きさ）
 function stBox(){const st=root&&root.querySelector('.vstage');if(!st)return null;const w=st.offsetWidth,h=st.offsetHeight,wr=st.parentNode.getBoundingClientRect(),pn=st.parentNode;return {l:wr.left+pn.clientLeft+st.offsetLeft,t:wr.top+pn.clientTop+st.offsetTop,w,h,P:PSP.dist*w,a:PSP.angle*Math.PI/180};}
 //   かたむけると、画面の上の方が空く。その分だけ画面を上へずらして（外は見えないようにして）、空いた所をなくす。奥の左右のすきまは、空の色でぬる
@@ -2234,7 +2234,7 @@ function start(el,opt){root=el;ambient();O=Object.assign({mode:'atk',units:7,sho
   root.innerHTML=`<div class="vbar"><b class="vtime">残り ${Math.floor(VD.time/60)}分00秒</b><span class="vgoal"></span><span class="vcap"><i></i></span><span class="vcnt"></span></div>
    <p class="vrot">スマホは横向きにすると、地図が大きく見えます。地図を大きく映したときは、部隊のない所を指でなぞると、地図が動きます。</p><div class="vwrap"><div class="vstage" style="position:relative;transform-origin:50% 100%"><canvas class="vcv"></canvas></div><div class="vzoom"><button class="bZin" title="大きく映す">＋</button><span class="vzl">×1</span><button class="bZout" title="小さく映す">－</button></div><div class="vov"></div></div>
    <div class="ucards"></div><div class="vctl"><button class="bArt" disabled>砲撃</button><button class="bGas" disabled>毒ガス弾</button><button class="bChg" disabled>突撃</button><button class="bDug" hidden disabled>地下壕から上げる</button><button class="bMG" disabled>機関銃を置く</button><button class="bMask" disabled>ガスマスクを着ける</button><button class="bAll">全部隊を選ぶ</button><button class="bRef" disabled>補充</button><button class="bEnd">遊ばずに、結果だけ見る</button><button class="bHelp">説明</button><label class="vblood"><input type="checkbox" class="cBlood"> 流血の表現</label><label class="vblood"><input type="checkbox" class="cPersp"> 遠近法</label><label class="vblood vbloom" style="display:none"><input type="checkbox" class="cBloom"> 光のにじみ</label><span class="vsel"></span></div>`;
-  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');bbHook(ctx);if(!ter0)buildTerrain();fresh();
+  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp2',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');bbHook(ctx);if(!ter0)buildTerrain();fresh();
   // 砲弾の穴の絵（VART.craters）があれば、読みこめたときに、地形の絵を作りなおす
   if(window.VART&&VART.craters&&!VART.craterPx){VART.craterPx=[];let left=VART.craters.length;const got=[];VART.craters.forEach((src,i)=>{const im=new Image();im.onload=()=>{const n=256,c=document.createElement('canvas');c.width=c.height=n;const q=c.getContext('2d');q.drawImage(im,0,0,n,n);got[i]={n,d:q.getImageData(0,0,n,n).data};if(--left===0){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.onerror=()=>{if(--left===0&&got.some(Boolean)){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.src=src;});}
   if(window.VART&&VART.crew&&!crewIm.g){for(const k of ['g','fr','uk']){const im=new Image();im.onload=()=>{crewIm[k]=im;};im.src=VART.crew.src[k];}}
@@ -3202,9 +3202,9 @@ function barrSound(b){if(b.gun){snd('cannon');return;}if(!window.Snd||!Snd.dista
 // ===== 遠近法：戦場の画面を、奥へ少しかたむけて見せる（遠くが小さく、近くが大きく見える） =====
 //   画面そのものの描き方は変えず、画面（と効果の画面）をまとめて、CSS の立体の変形で奥へかたむける。
 //   マウスや指の位置は、かたむけた分をもどして、画面のめもりに直す。数字は VD.view.persp で変えられる：angle＝かたむける角度（度）、dist＝見る距離（画面の幅の何倍か）
-//   画面の下の「遠近法」のチェックで、入／切できる（端末に覚えさせる）
-const PSP=Object.assign({on:true,angle:24,dist:1.15},(VD.view&&VD.view.persp)||{});
-try{const v=localStorage.getItem('vd_persp');if(v!==null)PSP.on=v==='1';}catch(e){}
+//   はじめは見下ろしの画面（遠近法は切）。画面の下の「遠近法」のチェックを入れると遠近法になる（端末に覚えさせる）
+const PSP=Object.assign({on:false,angle:24,dist:1.15},(VD.view&&VD.view.persp)||{});
+try{const v=localStorage.getItem('vd_persp2');if(v!==null)PSP.on=v==='1';}catch(e){}
 // かたむける前の画面の箱（ページの上の位置と大きさ）
 function stBox(){const st=root&&root.querySelector('.vstage');if(!st)return null;const w=st.offsetWidth,h=st.offsetHeight,wr=st.parentNode.getBoundingClientRect(),pn=st.parentNode;return {l:wr.left+pn.clientLeft+st.offsetLeft,t:wr.top+pn.clientTop+st.offsetTop,w,h,P:PSP.dist*w,a:PSP.angle*Math.PI/180};}
 //   かたむけると、画面の上の方が空く。その分だけ画面を上へずらして（外は見えないようにして）、空いた所をなくす。奥の左右のすきまは、空の色でぬる
@@ -3273,7 +3273,7 @@ function start(el,opt){root=el;ambient();O=Object.assign({mode:'atk',units:7,sho
   root.innerHTML=`<div class="vbar"><b class="vtime">残り ${Math.floor(VD.time/60)}分00秒</b><span class="vgoal"></span><span class="vcap"><i></i></span><span class="vcnt"></span></div>
    <p class="vrot">スマホは横向きにすると、地図が大きく見えます。地図を大きく映したときは、部隊のない所を指でなぞると、地図が動きます。</p><div class="vwrap"><div class="vstage" style="position:relative;transform-origin:50% 100%"><canvas class="vcv"></canvas></div><div class="vzoom"><button class="bZin" title="大きく映す">＋</button><span class="vzl">×1</span><button class="bZout" title="小さく映す">－</button></div><div class="vov"></div></div>
    <div class="ucards"></div><div class="vctl"><button class="bArt" disabled>砲撃</button><button class="bGas" disabled>毒ガス弾</button><button class="bChg" disabled>突撃</button><button class="bDug" hidden disabled>地下壕から上げる</button><button class="bMG" disabled>機関銃を置く</button><button class="bMask" disabled>ガスマスクを着ける</button><button class="bAll">全部隊を選ぶ</button><button class="bRef" disabled>補充</button><button class="bEnd">遊ばずに、結果だけ見る</button><button class="bHelp">説明</button><label class="vblood"><input type="checkbox" class="cBlood"> 流血の表現</label><label class="vblood"><input type="checkbox" class="cPersp"> 遠近法</label><label class="vblood vbloom" style="display:none"><input type="checkbox" class="cBloom"> 光のにじみ</label><span class="vsel"></span></div>`;
-  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');bbHook(ctx);if(!ter0)buildTerrain();fresh();
+  cv=$('.vcv');cv.style.aspectRatio=SW+'/'+SH;applyPersp();{const cp=$('.cPersp');if(cp){cp.checked=PSP.on;cp.onchange=()=>{PSP.on=cp.checked;try{localStorage.setItem('vd_persp2',cp.checked?'1':'0');}catch(e){}applyPersp();};}}const dpr=Math.min(1.5,window.devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx=cv.getContext('2d');bbHook(ctx);if(!ter0)buildTerrain();fresh();
   // 砲弾の穴の絵（VART.craters）があれば、読みこめたときに、地形の絵を作りなおす
   if(window.VART&&VART.craters&&!VART.craterPx){VART.craterPx=[];let left=VART.craters.length;const got=[];VART.craters.forEach((src,i)=>{const im=new Image();im.onload=()=>{const n=256,c=document.createElement('canvas');c.width=c.height=n;const q=c.getContext('2d');q.drawImage(im,0,0,n,n);got[i]={n,d:q.getImageData(0,0,n,n).data};if(--left===0){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.onerror=()=>{if(--left===0&&got.some(Boolean)){VART.craterPx=got.filter(Boolean);buildTerrain();fresh();}};im.src=src;});}
   if(window.VART&&VART.crew&&!crewIm.g){for(const k of ['g','fr','uk']){const im=new Image();im.onload=()=>{crewIm[k]=im;};im.src=VART.crew.src[k];}}
